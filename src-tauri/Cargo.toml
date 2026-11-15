@@ -1,0 +1,42 @@
+[package]
+name = "digital-library"
+version = "0.1.0"
+description = "A beautiful desktop library for your ebooks and PDFs"
+edition = "2021"
+rust-version = "1.80"
+
+[lib]
+# The `_lib` suffix avoids a name clash with the binary on Windows (cargo#8519).
+name = "digital_library_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-log = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+rusqlite = { version = "0.43", features = ["bundled"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
+quick-xml = "0.42"
+lopdf = { version = "0.47", default-features = false }
+sha2 = "0.11"
+uuid = { version = "1", features = ["v7"] }
+walkdir = "2"
+percent-encoding = "2"
+log = "0.4"
+ts-rs = { version = "12", features = ["serde-compat"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

@@ -1,0 +1,33 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+button, input, select { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+button:disabled { cursor: default; opacity: 0.55; }
+
+.btn {
+  height: var(--control-height);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--color-hover); }
+.btn-primary { background: var(--color-accent); border-color: transparent; color: var(--color-accent-text); }
+.btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 88%, black); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 5px; border: 2px solid var(--color-bg); }
+::-webkit-scrollbar-track { background: transparent; }
