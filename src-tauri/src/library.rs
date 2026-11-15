@@ -6,6 +6,7 @@
 //!   Library/
 //!     books/<id>.<ext>     the imported file (a copy, never the user's original)
 //!     covers/<id>.<ext>    extracted or generated cover image
+//!     incoming/            in-flight downloads (emptied on launch)
 //! ```
 
 use std::path::{Path, PathBuf};
@@ -17,6 +18,7 @@ pub struct LibraryPaths {
     pub db: PathBuf,
     pub books: PathBuf,
     pub covers: PathBuf,
+    pub incoming: PathBuf,
 }
 
 impl LibraryPaths {
@@ -26,9 +28,13 @@ impl LibraryPaths {
             db: app_data.join("library.db"),
             books: root.join("books"),
             covers: root.join("covers"),
+            incoming: root.join("incoming"),
         };
-        std::fs::create_dir_all(&paths.books)?;
-        std::fs::create_dir_all(&paths.covers)?;
+        // Leftovers from an interrupted download are useless; start clean.
+        let _ = std::fs::remove_dir_all(&paths.incoming);
+        for dir in [&paths.books, &paths.covers, &paths.incoming] {
+            std::fs::create_dir_all(dir)?;
+        }
         Ok(paths)
     }
 
@@ -93,6 +99,7 @@ mod tests {
             db: "x".into(),
             books: "/lib/books".into(),
             covers: "/lib/covers".into(),
+            incoming: "/lib/incoming".into(),
         };
         assert!(p.book_file("abc.epub").is_ok());
         for bad in ["../x", "..", "a/b", "a\\b", ""] {

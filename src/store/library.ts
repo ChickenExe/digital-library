@@ -12,7 +12,10 @@ import type { ImportReport } from "../bindings/ImportReport";
 import type { LibraryStats } from "../bindings/LibraryStats";
 import { api, errorMessage } from "../lib/api";
 
-export type View = { kind: "library" } | { kind: "reader"; bookId: string };
+export type View =
+  | { kind: "library" }
+  | { kind: "discover" }
+  | { kind: "reader"; bookId: string; returnTo: "library" | "discover" };
 
 type Toast = { id: number; tone: "info" | "error"; text: string };
 
@@ -34,6 +37,7 @@ type LibraryState = {
   deleteBook: (book: Book) => Promise<void>;
   openBook: (id: string) => void;
   closeReader: () => void;
+  navigate: (view: "library" | "discover") => void;
   toast: (text: string, tone?: Toast["tone"]) => void;
   dismissToast: (id: number) => void;
 };
@@ -110,11 +114,16 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     }
   },
 
-  openBook: (id) => set({ view: { kind: "reader", bookId: id } }),
+  openBook: (id) => {
+    const from = get().view.kind;
+    set({ view: { kind: "reader", bookId: id, returnTo: from === "discover" ? "discover" : "library" } });
+  },
   closeReader: () => {
-    set({ view: { kind: "library" } });
+    const view = get().view;
+    set({ view: { kind: view.kind === "reader" ? view.returnTo : "library" } });
     void get().refresh();
   },
+  navigate: (kind) => set({ view: { kind } }),
 
   toast: (text, tone = "info") => {
     const id = ++toastSeq;

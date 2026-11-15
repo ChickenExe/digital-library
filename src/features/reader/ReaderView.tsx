@@ -57,7 +57,7 @@ export function ReaderView({ bookId }: { bookId: string }) {
     <div className={styles.reader}>
       <header className={styles.bar}>
         <button className="btn" onClick={closeReader}>
-          ← Library
+          ← Back
         </button>
         <div className={styles.heading}>
           <div className={styles.title}>{book?.title ?? ""}</div>

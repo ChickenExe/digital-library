@@ -1,6 +1,8 @@
+mod catalog;
 mod commands;
 mod db;
 mod error;
+mod http;
 mod import;
 mod library;
 mod models;
@@ -8,7 +10,9 @@ mod protocol;
 mod state;
 
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
+use tokio::sync::Semaphore;
 use tauri::{AppHandle, Emitter, Manager};
 
 use library::LibraryPaths;
@@ -24,18 +28,40 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .register_asynchronous_uri_scheme_protocol("book", |ctx, req, res| {
             protocol::handle(Kind::Book, ctx, req, res)
         })
         .register_asynchronous_uri_scheme_protocol("cover", |ctx, req, res| {
             protocol::handle(Kind::Cover, ctx, req, res)
         })
+        .register_asynchronous_uri_scheme_protocol("catalog-cover", protocol::handle_catalog_cover)
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             let paths = LibraryPaths::new(&data_dir)?;
-            let conn = db::open(&paths.db)?;
+            let conn = db::open(&paths.db, db::LIBRARY_MIGRATIONS)?;
             log::info!("library at {}", data_dir.display());
             app.manage(AppState { db: Mutex::new(conn), paths });
+
+            // Discover: the catalog index is a cache, so it lives in the cache dir.
+            let cache_dir = app.path().app_cache_dir()?;
+            let covers_dir = cache_dir.join("catalog-covers");
+            std::fs::create_dir_all(&covers_dir)?;
+            let catalog_db = db::open(&cache_dir.join("catalog.db"), catalog::CATALOG_MIGRATIONS)?;
+            let status = catalog::sync::initial_status(&catalog_db)?;
+            let stale = catalog::sync::is_stale(&status);
+            app.manage(catalog::CatalogState {
+                db: Mutex::new(catalog_db),
+                http: http::client(),
+                covers_dir,
+                syncing: AtomicBool::new(false),
+                status: Mutex::new(status),
+                cover_permits: Semaphore::new(6),
+            });
+            if stale {
+                catalog::sync::spawn(app.handle().clone(), false);
+            }
+
             import_launch_args(app.handle().clone());
             Ok(())
         })
@@ -49,6 +75,12 @@ pub fn run() {
             commands::save_progress,
             commands::save_cover,
             commands::mark_cover_missing,
+            catalog::commands::catalog_status,
+            catalog::commands::catalog_sync,
+            catalog::commands::catalog_home,
+            catalog::commands::catalog_search,
+            catalog::commands::catalog_detail,
+            catalog::commands::catalog_acquire,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Digital Library");

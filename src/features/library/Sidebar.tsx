@@ -22,18 +22,33 @@ export function Sidebar() {
   const stats = useStats();
   const query = useLibrary((s) => s.query);
   const setQuery = useLibrary((s) => s.setQuery);
+  const view = useLibrary((s) => s.view.kind);
+  const navigate = useLibrary((s) => s.navigate);
+  const inLibrary = view === "library";
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>Digital Library</div>
 
       <nav className={styles.section}>
+        <button
+          className={`${styles.item} ${view === "discover" ? styles.active : ""}`}
+          onClick={() => navigate("discover")}
+        >
+          <span>Discover</span>
+        </button>
+      </nav>
+
+      <nav className={styles.section}>
         <div className={styles.heading}>Library</div>
         {SHELVES.map((s) => (
           <button
             key={s.id}
-            className={`${styles.item} ${query.shelf === s.id ? styles.active : ""}`}
-            onClick={() => setQuery({ shelf: s.id })}
+            className={`${styles.item} ${inLibrary && query.shelf === s.id ? styles.active : ""}`}
+            onClick={() => {
+              navigate("library");
+              setQuery({ shelf: s.id });
+            }}
           >
             <span>{s.label}</span>
             <span className={styles.count}>{s.count(stats)}</span>
@@ -41,6 +56,7 @@ export function Sidebar() {
         ))}
       </nav>
 
+      {inLibrary && (
       <nav className={styles.section}>
         <div className={styles.heading}>Format</div>
         {FORMATS.map((f) => (
@@ -53,6 +69,7 @@ export function Sidebar() {
           </button>
         ))}
       </nav>
+      )}
     </aside>
   );
 }

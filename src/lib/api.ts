@@ -10,10 +10,17 @@ import type { BookQuery } from "../bindings/BookQuery";
 import type { ImportProgress } from "../bindings/ImportProgress";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { LibraryStats } from "../bindings/LibraryStats";
+import type { CatalogDetail } from "../bindings/CatalogDetail";
+import type { CatalogEntry } from "../bindings/CatalogEntry";
+import type { CatalogPage } from "../bindings/CatalogPage";
+import type { CatalogQuery } from "../bindings/CatalogQuery";
+import type { CatalogRow } from "../bindings/CatalogRow";
+import type { CatalogStatus } from "../bindings/CatalogStatus";
+import type { DownloadProgress } from "../bindings/DownloadProgress";
 
 /** Shape of every error a command can reject with (see `src-tauri/src/error.rs`). */
 export type AppError = {
-  kind: "db" | "io" | "parse" | "unsupported" | "notFound" | "invalid";
+  kind: "db" | "io" | "parse" | "unsupported" | "notFound" | "network" | "invalid";
   message: string;
 };
 
@@ -35,12 +42,26 @@ export const api = {
   saveCover: (id: string, bytes: Uint8Array) =>
     invoke<void>("save_cover", bytes, { headers: { "x-book-id": id } }),
   markCoverMissing: (id: string) => invoke<void>("mark_cover_missing", { id }),
+
+  // Discover
+  catalogStatus: () => invoke<CatalogStatus>("catalog_status"),
+  catalogSync: (force = false) => invoke<void>("catalog_sync", { force }),
+  catalogHome: (language?: string) => invoke<CatalogRow[]>("catalog_home", { language }),
+  catalogSearch: (query: CatalogQuery) => invoke<CatalogPage>("catalog_search", { query }),
+  catalogDetail: (provider: string, id: string) =>
+    invoke<CatalogDetail>("catalog_detail", { provider, id }),
+  catalogAcquire: (provider: string, id: string) =>
+    invoke<Book>("catalog_acquire", { provider, id }),
 };
 
 export const events = {
   onLibraryChanged: (cb: () => void): Promise<UnlistenFn> => listen("library-changed", cb),
   onImportProgress: (cb: (p: ImportProgress) => void): Promise<UnlistenFn> =>
     listen<ImportProgress>("import-progress", (e) => cb(e.payload)),
+  onCatalogStatus: (cb: (s: CatalogStatus) => void): Promise<UnlistenFn> =>
+    listen<CatalogStatus>("catalog-status", (e) => cb(e.payload)),
+  onDownloadProgress: (cb: (p: DownloadProgress) => void): Promise<UnlistenFn> =>
+    listen<DownloadProgress>("catalog-download", (e) => cb(e.payload)),
 };
 
 /** URL of the book file, served by the `book://` protocol (http://book.localhost on Windows). */
@@ -54,3 +75,10 @@ export async function fetchBookBytes(id: string): Promise<ArrayBuffer> {
   if (!res.ok) throw new Error(`Could not load book (${res.status})`);
   return res.arrayBuffer();
 }
+
+/** Remote catalog cover, proxied + cached by Rust (`catalog-cover://`). */
+export const catalogCoverUrl = (entry: Pick<CatalogEntry, "provider" | "id">) =>
+  convertFileSrc(`${entry.provider}/${entry.id}`, "catalog-cover");
+
+export const listingKey = (entry: Pick<CatalogEntry, "provider" | "id">) =>
+  `${entry.provider}/${entry.id}`;

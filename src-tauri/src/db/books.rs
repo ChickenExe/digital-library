@@ -29,6 +29,14 @@ pub struct NewBook {
     pub page_count: Option<u32>,
     pub cover_file: Option<String>,
     pub cover_state: CoverState,
+    pub origin: Option<Origin>,
+}
+
+/// The catalog listing a book was acquired from.
+#[derive(Debug, Clone)]
+pub struct Origin {
+    pub provider: String,
+    pub id: String,
 }
 
 /// Paths of files that belong to a deleted book, so the caller can remove them.
@@ -182,6 +190,36 @@ pub fn find_by_hash(conn: &Connection, hash: &str) -> AppResult<Option<String>> 
         .optional()?)
 }
 
+/// Links an existing book to a catalog listing (e.g. the user imported the same file earlier).
+pub fn set_origin(conn: &Connection, id: &str, origin: &Origin) -> AppResult<()> {
+    conn.execute(
+        "UPDATE books SET source_provider = ?2, source_id = ?3
+         WHERE id = ?1 AND source_provider IS NULL",
+        params![id, origin.provider, origin.id],
+    )?;
+    Ok(())
+}
+
+pub fn find_by_origin(conn: &Connection, provider: &str, source_id: &str) -> AppResult<Option<String>> {
+    Ok(conn
+        .query_row(
+            "SELECT id FROM books WHERE source_provider = ? AND source_id = ?",
+            [provider, source_id],
+            |r| r.get(0),
+        )
+        .optional()?)
+}
+
+/// `source_id -> book id` for every book acquired from `provider`.
+pub fn owned_from(conn: &Connection, provider: &str) -> AppResult<std::collections::HashMap<String, String>> {
+    let mut stmt =
+        conn.prepare("SELECT source_id, id FROM books WHERE source_provider = ?")?;
+    let map = stmt
+        .query_map([provider], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<Result<_, _>>()?;
+    Ok(map)
+}
+
 pub fn file_name(conn: &Connection, id: &str) -> AppResult<Option<(String, String)>> {
     Ok(conn
         .query_row("SELECT file_name, format FROM books WHERE id = ?", [id], |r| {
@@ -203,8 +241,10 @@ pub fn insert(conn: &mut Connection, book: &NewBook) -> AppResult<()> {
     tx.execute(
         "INSERT INTO books (id, title, sort_title, description, publisher, language, published,
                             isbn, format, file_name, original_name, file_size, file_hash,
-                            page_count, cover_file, cover_state, cover_updated_at, added_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?17, ?17)",
+                            page_count, cover_file, cover_state, cover_updated_at, added_at, updated_at,
+                            source_provider, source_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?17, ?17,
+                 ?18, ?19)",
         params![
             book.id,
             book.title,
@@ -223,6 +263,8 @@ pub fn insert(conn: &mut Connection, book: &NewBook) -> AppResult<()> {
             book.cover_file,
             book.cover_state.as_str(),
             now,
+            book.origin.as_ref().map(|o| &o.provider),
+            book.origin.as_ref().map(|o| &o.id),
         ],
     )?;
     set_authors(&tx, &book.id, &book.authors)?;
@@ -351,6 +393,7 @@ mod tests {
             page_count: None,
             cover_file: None,
             cover_state: CoverState::Missing,
+            origin: None,
         }
     }
 
@@ -366,7 +409,7 @@ mod tests {
 
     #[test]
     fn insert_list_search_delete() {
-        let mut conn = open_in_memory().unwrap();
+        let mut conn = open_in_memory(crate::db::LIBRARY_MIGRATIONS).unwrap();
         insert(&mut conn, &sample("a", "The Left Hand of Darkness", &["Ursula K. Le Guin"], "h1")).unwrap();
         insert(&mut conn, &sample("b", "Café Society", &["Zadie Smith", "Ursula K. Le Guin"], "h2")).unwrap();
 
@@ -390,6 +433,11 @@ mod tests {
         assert_eq!((s.total, s.reading, s.favorites, s.finished), (2, 1, 1, 0));
         let reading = list(&conn, &BookQuery { shelf: Shelf::Reading, ..Default::default() }).unwrap();
         assert_eq!(reading[0].progress.as_ref().unwrap().percent, 0.5);
+
+        let origin = Origin { provider: "gutenberg".into(), id: "1342".into() };
+        set_origin(&conn, "a", &origin).unwrap();
+        assert_eq!(find_by_origin(&conn, "gutenberg", "1342").unwrap().as_deref(), Some("a"));
+        assert_eq!(owned_from(&conn, "gutenberg").unwrap().get("1342").map(String::as_str), Some("a"));
 
         delete(&mut conn, "b").unwrap();
         assert!(get(&conn, "b").is_err());

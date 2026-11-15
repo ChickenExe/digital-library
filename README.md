@@ -8,6 +8,9 @@ React/TypeScript UI), targeting **Windows** first.
 
 ## What works today
 
+- **Discover:** browse and search 70,000+ free public-domain books from Project Gutenberg,
+  with curated rows, popularity ranking, summaries and one-click "Get" into your library
+
 - Import EPUB and PDF files via a picker, by dragging files or folders onto the window,
   or by passing them as command-line arguments (how Windows "Open with" works)
 - Metadata extraction (title, authors, description, language, ISBN, page count)
@@ -43,3 +46,4 @@ Then drag the `sample-books` folder onto the app window.
 ## Docs
 
 - [Architecture](docs/ARCHITECTURE.md): how the pieces fit and why they were chosen
+- [Storefront strategy](docs/STOREFRONT.md): how we attract publishers and booksellers to sell here

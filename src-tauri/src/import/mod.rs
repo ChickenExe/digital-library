@@ -9,7 +9,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use crate::db::books::{self, NewBook};
+use crate::db::books::{self, NewBook, Origin};
 use crate::error::{AppError, AppResult};
 use crate::library::{image_extension, LibraryPaths};
 use crate::models::{Book, BookFormat, CoverState, ImportFailure, ImportReport};
@@ -36,7 +36,8 @@ pub struct Cover {
 
 pub enum Outcome {
     Imported(Book),
-    Duplicate,
+    /// The same file (by content hash) is already in the library, with this id.
+    Duplicate(String),
 }
 
 /// Expands folders recursively and keeps only supported files.
@@ -82,6 +83,7 @@ pub fn import_file(
     conn: &mut rusqlite::Connection,
     paths: &LibraryPaths,
     source: &Path,
+    origin: Option<Origin>,
 ) -> AppResult<Outcome> {
     let format = format_of(source).ok_or_else(|| {
         AppError::Unsupported(
@@ -89,8 +91,11 @@ pub fn import_file(
         )
     })?;
     let hash = hash_file(source)?;
-    if books::find_by_hash(conn, &hash)?.is_some() {
-        return Ok(Outcome::Duplicate);
+    if let Some(existing) = books::find_by_hash(conn, &hash)? {
+        if let Some(origin) = &origin {
+            books::set_origin(conn, &existing, origin)?;
+        }
+        return Ok(Outcome::Duplicate(existing));
     }
 
     let extracted = match format {
@@ -146,6 +151,7 @@ pub fn import_file(
             page_count: extracted.page_count,
             cover_file,
             cover_state,
+            origin,
         };
         books::insert(conn, &new_book)?;
         books::get(conn, &id)
@@ -179,12 +185,12 @@ pub fn import_all(
         let display = file.file_name().and_then(|n| n.to_str()).unwrap_or_default();
         on_progress(i as u32, total, display);
         let result = match conn.lock() {
-            Ok(mut guard) => import_file(&mut guard, paths, file),
+            Ok(mut guard) => import_file(&mut guard, paths, file, None),
             Err(_) => Err(AppError::Invalid("database lock poisoned".into())),
         };
         match result {
             Ok(Outcome::Imported(book)) => report.imported.push(book),
-            Ok(Outcome::Duplicate) => report.duplicates.push(file.display().to_string()),
+            Ok(Outcome::Duplicate(_)) => report.duplicates.push(file.display().to_string()),
             Err(e) => report.failed.push(ImportFailure {
                 path: file.display().to_string(),
                 reason: e.to_string(),
@@ -226,7 +232,7 @@ mod tests {
     fn end_to_end_import_and_dedupe() {
         let dir = tempfile::tempdir().unwrap();
         let paths = LibraryPaths::new(&dir.path().join("data")).unwrap();
-        let conn = Mutex::new(crate::db::open_in_memory().unwrap());
+        let conn = Mutex::new(crate::db::open_in_memory(crate::db::LIBRARY_MIGRATIONS).unwrap());
 
         let src = dir.path().join("sample.epub");
         std::fs::write(&src, epub::tests::build_epub(true)).unwrap();

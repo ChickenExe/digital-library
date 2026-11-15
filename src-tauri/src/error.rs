@@ -14,8 +14,17 @@ pub enum AppError {
     Unsupported(String),
     #[error("not found: {0}")]
     NotFound(String),
+    #[error("network error: {0}")]
+    Network(String),
     #[error("{0}")]
     Invalid(String),
+}
+
+impl From<reqwest::Error> for AppError {
+    fn from(e: reqwest::Error) -> Self {
+        // Strip the URL so errors shown in the UI stay short.
+        AppError::Network(e.without_url().to_string())
+    }
 }
 
 impl AppError {
@@ -26,6 +35,7 @@ impl AppError {
             AppError::Parse(_) => "parse",
             AppError::Unsupported(_) => "unsupported",
             AppError::NotFound(_) => "notFound",
+            AppError::Network(_) => "network",
             AppError::Invalid(_) => "invalid",
         }
     }

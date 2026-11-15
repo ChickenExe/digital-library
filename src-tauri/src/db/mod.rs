@@ -1,4 +1,8 @@
-//! SQLite connection + forward-only migrations tracked via `PRAGMA user_version`.
+//! SQLite connections + forward-only migrations tracked via `PRAGMA user_version`.
+//!
+//! Two databases:
+//! - `library.db`: the user's books. Precious; migrations are append-only.
+//! - `catalog.db`: an index of remote catalogs. A cache; safe to delete and rebuild.
 
 pub mod books;
 
@@ -7,21 +11,24 @@ use std::path::Path;
 
 use crate::error::AppResult;
 
-/// Ordered list of migrations. Append only — never edit a shipped migration.
-const MIGRATIONS: &[&str] = &[include_str!("../../migrations/0001_init.sql")];
+/// Library migrations. Append only — never edit a shipped migration.
+pub const LIBRARY_MIGRATIONS: &[&str] = &[
+    include_str!("../../migrations/0001_init.sql"),
+    include_str!("../../migrations/0002_book_source.sql"),
+];
 
-pub fn open(path: &Path) -> AppResult<Connection> {
+pub fn open(path: &Path, migrations: &[&str]) -> AppResult<Connection> {
     let mut conn = Connection::open(path)?;
     configure(&conn)?;
-    migrate(&mut conn)?;
+    migrate(&mut conn, migrations)?;
     Ok(conn)
 }
 
 #[cfg(test)]
-pub fn open_in_memory() -> AppResult<Connection> {
+pub fn open_in_memory(migrations: &[&str]) -> AppResult<Connection> {
     let mut conn = Connection::open_in_memory()?;
     configure(&conn)?;
-    migrate(&mut conn)?;
+    migrate(&mut conn, migrations)?;
     Ok(conn)
 }
 
@@ -35,9 +42,9 @@ fn configure(conn: &Connection) -> AppResult<()> {
     Ok(())
 }
 
-fn migrate(conn: &mut Connection) -> AppResult<()> {
+fn migrate(conn: &mut Connection, migrations: &[&str]) -> AppResult<()> {
     let current: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    for (index, sql) in MIGRATIONS.iter().enumerate().skip(current as usize) {
+    for (index, sql) in migrations.iter().enumerate().skip(current as usize) {
         let tx = conn.transaction()?;
         tx.execute_batch(sql)?;
         tx.pragma_update(None, "user_version", (index + 1) as i64)?;
