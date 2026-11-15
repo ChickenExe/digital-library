@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Direction A — The Shelf</title>
+<link rel="stylesheet" href="fonts.css" />
+<style>
+  :root {
+    --bg: #f5eee4; --paper: #fbf8f3; --ink: #2b211a; --muted: #8b7b6b; --faint: #b9ab9b;
+    --ochre: #d6a35c; --ochre-deep: #b9853f; --line: #e8dccd;
+    --serif: "Fraunces", Georgia, serif; --sans: "Inter", system-ui, sans-serif;
+  }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); }
+
+  header { height: 92px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 64px; }
+  .logo { font-family: var(--serif); font-size: 30px; font-weight: 600; letter-spacing: .02em; font-variation-settings: "SOFT" 100, "opsz" 72; }
+  .logo span { color: var(--ochre-deep); font-style: italic; }
+  nav { display: flex; gap: 6px; padding: 5px; border-radius: 999px; background: rgba(255,255,255,.55); }
+  nav a { font-size: 14px; padding: 9px 20px; border-radius: 999px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+  nav a.on { background: var(--ochre); color: #2b1d0c; font-weight: 600; box-shadow: 0 6px 16px rgba(185,133,63,.35); }
+  .tools { justify-self: end; display: flex; gap: 18px; align-items: center; }
+  .icon { width: 20px; height: 20px; stroke: var(--ink); fill: none; stroke-width: 1.6; }
+  .dot { position: relative; } .dot::after { content: ""; position: absolute; top: -1px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--ochre); border: 2px solid var(--bg); }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; color: #fff; }
+
+  /* ---------- hero, sitting on the shelf ---------- */
+  .stage { position: relative; height: 446px; display: grid; grid-template-columns: 430px 330px 1fr; padding: 0 64px; align-items: end; }
+  .intro { align-self: center; padding-bottom: 30px; }
+  .kicker { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: var(--serif); font-weight: 420; font-size: 66px; line-height: .98; margin: 14px 0 22px; letter-spacing: -.02em; font-variation-settings: "SOFT" 60, "opsz" 144; }
+  h1 em { font-style: italic; color: var(--ochre-deep); font-weight: 380; }
+  .now { font-size: 15px; } .now b { font-family: var(--serif); font-weight: 600; font-size: 18px; }
+  .meter { margin: 14px 0 6px; height: 4px; width: 300px; background: var(--line); border-radius: 2px; }
+  .meter i { display: block; height: 100%; width: 46%; background: var(--ink); border-radius: 2px; }
+  .meta { font-size: 12.5px; color: var(--muted); }
+  .readers { display: flex; align-items: center; margin-top: 18px; font-size: 12.5px; color: var(--muted); }
+  .readers .av { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--bg); margin-right: -7px; color: #fff; font-size: 9.5px; font-weight: 700; display: grid; place-items: center; }
+  .readers span:last-child { margin-left: 16px; }
+  .ctas { display: flex; gap: 10px; margin-top: 22px; }
+  .btn { height: 46px; padding: 0 24px; border-radius: 999px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 600; }
+  .btn.dark { background: var(--ink); color: #fbf3e6; }
+  .btn.ghost { border: 1px solid #dccdbb; color: var(--ink); }
+
+  .hero-book { justify-self: center; margin-bottom: 0; filter: drop-shadow(-18px 18px 18px rgba(80,50,20,.25)); }
+
+  .side { display: flex; gap: 26px; justify-content: flex-end; align-items: end; padding-bottom: 0; }
+  .tall { display: flex; gap: 10px; align-items: flex-start; }
+  .vlabel { writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--serif); font-size: 15px; color: var(--ink); white-space: nowrap; }
+  .card { width: 200px; height: 286px; border-radius: 22px; padding: 22px 20px; position: relative; box-shadow: 0 20px 40px rgba(90,60,25,.16); }
+  .card.ochre { background: linear-gradient(170deg, #e2b26a, #cf9a4f); color: #2a1a07; }
+  .card.paper { background: #fffdf9; }
+  .card h3 { font-family: var(--serif); font-weight: 560; font-size: 19px; line-height: 1.15; margin: 0; text-align: center; }
+  .card .sub { text-align: center; font-size: 12px; margin-top: 6px; opacity: .7; }
+  .stack { display: flex; justify-content: center; margin-top: 18px; }
+  .stack .avatar { width: 34px; height: 34px; border: 2px solid #dca965; margin-left: -9px; font-size: 11px; }
+  .track-label { text-align: center; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; margin-top: 26px; }
+  .track { position: relative; margin: 20px 8px 0; height: 3px; background: rgba(42,26,7,.18); border-radius: 2px; }
+  .track .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 93%; background: rgba(42,26,7,.5); border-radius: 2px; }
+  .track .pin { position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 2px solid #e0ae68; font-size: 8.5px; font-weight: 700; color: #fff; display: grid; place-items: center; }
+  .track .pin.you { width: 26px; height: 26px; margin: -13px 0 0 -13px; background: var(--ink) !important; border-color: #fff; }
+  .card .foot { position: absolute; left: 20px; right: 20px; bottom: 20px; display: flex; justify-content: space-between; font-size: 11.5px; }
+  .chip { padding: 6px 12px; border-radius: 999px; background: rgba(42,26,7,.12); font-weight: 600; }
+  .quote { font-family: var(--serif); font-style: italic; font-size: 22px; line-height: 1.2; text-align: center; margin-top: 18px; font-variation-settings: "SOFT" 100; }
+  .qmark { font-family: var(--serif); font-size: 46px; line-height: .6; color: var(--ochre); text-align: center; margin-top: 8px; }
+  .hearts { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+
+  /* ---------- the shelf ---------- */
+  .shelf { position: relative; height: 26px; margin: 0 24px; background: linear-gradient(#f3ebe0, #e9dccb); border-radius: 4px; box-shadow: 0 1px 0 #fff inset, 0 22px 30px -12px rgba(90,60,25,.35), 0 6px 0 -1px #dccbb5; z-index: 2; }
+
+  /* ---------- lower panel: the collection ---------- */
+  .lower { margin: -10px 64px 0; height: 346px; background: var(--paper); border-radius: 0 0 28px 28px; box-shadow: 0 30px 60px -30px rgba(90,60,25,.25); display: grid; grid-template-columns: 1fr 440px; padding: 34px 40px 0 28px; gap: 40px; }
+  .collection { display: grid; grid-template-columns: 32px 1fr; gap: 14px; }
+  .collection .vlabel { font-size: 16px; align-self: start; margin-top: 4px; }
+  .col-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  .col-head p { margin: 0; font-size: 13px; color: var(--muted); }
+  .col-head p b { color: var(--ink); font-family: var(--serif); font-weight: 600; font-size: 15px; }
+  .col-head a { font-size: 13px; color: var(--ochre-deep); font-weight: 600; }
+  .row { display: flex; gap: 34px; align-items: flex-start; }
+  .item { width: 96px; }
+  .item .book3d { --w: 96px; --h: 144px; --d: 15px; --ry: 14deg; filter: drop-shadow(-8px 10px 10px rgba(80,50,20,.22)); }
+  .no { font-size: 10.5px; letter-spacing: .1em; color: var(--faint); margin-top: 14px; font-variant-numeric: tabular-nums; }
+  .t { font-family: var(--serif); font-size: 14px; font-weight: 560; margin-top: 3px; line-height: 1.15; }
+  .stamp { display: inline-block; margin-top: 6px; font-size: 10px; padding: 2px 7px; border: 1px solid var(--ochre); color: var(--ochre-deep); border-radius: 999px; font-weight: 600; letter-spacing: .04em; }
+  .stamp.reading { border-color: var(--ink); color: var(--ink); }
+
+  .sets { border-left: 1px solid var(--line); padding-left: 36px; }
+  .sets h4 { font-family: var(--serif); font-weight: 560; font-size: 20px; margin: 0 0 4px; }
+  .sets .muted { font-size: 13px; color: var(--muted); margin: 0 0 20px; }
+  .slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .slot { aspect-ratio: 2/3; border-radius: 3px; overflow: hidden; box-shadow: 0 6px 12px rgba(80,50,20,.18); }
+  .slot img { width: 100%; height: 100%; object-fit: cover; }
+  .slot.empty { box-shadow: none; border: 1.5px dashed #d3c2ad; display: grid; place-items: center; color: #c8b59d; font-size: 18px; }
+  .setbar { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; font-size: 12.5px; color: var(--muted); }
+  .setbar b { color: var(--ink); }
+  .mini { margin-top: 18px; display: flex; gap: 10px; }
+  .mini div { flex: 1; padding: 10px 12px; border-radius: 12px; background: #f4ece1; font-size: 12px; }
+  .mini b { display: block; font-family: var(--serif); font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">Fol<span>i</span>o</div>
+    <nav>
+      <a class="on"><svg class="icon" style="stroke:#2b1d0c" viewBox="0 0 24 24"><path d="M4 5h4v14H4zM10 5h4v14h-4zM16 6l3.5-1 2.5 13.5-3.5 1z"/></svg>Home</a>
+      <a>Discover</a><a>Collection</a><a>Circles</a>
+    </nav>
+    <div class="tools">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      <svg class="icon dot" viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>
+      <div class="avatar" style="background:#7b5a3c">R</div>
+    </div>
+  </header>
+
+  <section class="stage">
+    <div class="intro">
+      <div class="kicker">Tuesday evening</div>
+      <h1>Pick up where<br>you <em>left off</em></h1>
+      <div class="now"><b>Dracula</b> &nbsp;·&nbsp; Bram Stoker</div>
+      <div class="meter"><i></i></div>
+      <div class="meta">Chapter 12 of 27 &nbsp;·&nbsp; 46% &nbsp;·&nbsp; about 2 h 10 m left</div>
+      <div class="readers"><span class="av" style="background:#8c3b2e">M</span><span class="av" style="background:#35524a">T</span><span class="av" style="background:#2f4b6b">K</span><span>Mara, Tomás and 1,282 others are reading this week</span></div>
+      <div class="ctas"><span class="btn dark">Continue reading</span><span class="btn ghost">Open in circle</span></div>
+    </div>
+
+    <div class="hero-book">
+      <div class="book3d" style="--w:252px;--h:384px;--d:42px;--ry:20deg">
+        <div class="spine" style="background-image:url(assets/covers/345.jpg)"></div>
+        <div class="front"><img src="assets/covers/345.jpg" alt=""></div>
+        <div class="pages"></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="tall">
+        <div class="vlabel">Your circle tonight</div>
+        <div class="card ochre">
+          <h3>Gothic October</h3>
+          <div class="sub">8 readers · reading Dracula</div>
+          <div class="stack">
+            <div class="avatar" style="background:#8c3b2e">M</div><div class="avatar" style="background:#35524a">T</div><div class="avatar" style="background:#5b4a8a">E</div><div class="avatar" style="background:#2f4b6b">K</div><div class="avatar" style="background:#2b211a">+4</div>
+          </div>
+          <div class="track-label">Where everyone is</div>
+          <div class="track"><div class="fill"></div>
+            <div class="pin" style="left:8%;background:#2f4b6b">K</div>
+            <div class="pin" style="left:30%;background:#5b4a8a">E</div>
+            <div class="pin you" style="left:52%"></div>
+            <div class="pin" style="left:72%;background:#35524a">T</div>
+            <div class="pin" style="left:93%;background:#8c3b2e">M</div>
+          </div>
+          <div class="foot"><span class="chip">23 new notes</span><span style="align-self:center">Ch. 12 →</span></div>
+        </div>
+      </div>
+      <div class="tall">
+        <div class="vlabel">Most highlighted</div>
+        <div class="card paper">
+          <div class="qmark">“</div>
+          <div class="quote">Welcome to my house! Enter freely and of your own will!</div>
+          <div class="sub" style="margin-top:14px">Dracula · Chapter 2</div>
+          <div class="foot"><span class="hearts">♥ 312 readers</span><span style="color:var(--ochre-deep);font-weight:600">Save</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="shelf"></div>
+
+  <section class="lower">
+    <div class="collection">
+      <div class="vlabel">Your collection</div>
+      <div>
+        <div class="col-head">
+          <p><b>42 volumes</b> &nbsp;·&nbsp; 18 authors &nbsp;·&nbsp; 1813 – 1925</p>
+          <a>View all shelves →</a>
+        </div>
+        <div class="row">
+          <div class="item"><div class="book3d"><div class="spine" style="background-image:url(assets/covers/64317.jpg)"></div><div class="front"><img src="assets/covers/64317.jpg"></div><div class="pages"></div></div><div class="no">NO. 042</div><div class="t">The Great Gatsby</div><span class="stamp">Finished</span></div>
+          <div class="item"><div class="book3d"><div class="spine" style="background-image:url(assets/covers/1342.jpg)"></div><div class="front"><img src="assets/covers/1342.jpg"></div><div class="pages"></div></div><div class="no">NO. 041</div><div class="t">Pride and Prejudice</div><span class="stamp">Finished</span></div>
+          <div class="item"><div class="book3d"><div class="spine" style="background-image:url(assets/covers/2701.jpg)"></div><div class="front"><img src="assets/covers/2701.jpg"></div><div class="pages"></div></div><div class="no">NO. 040</div><div class="t">Moby Dick</div><span class="stamp reading">12%</span></div>
+          <div class="item"><div class="book3d"><div class="spine" style="background-image:url(assets/covers/174.jpg)"></div><div class="front"><img src="assets/covers/174.jpg"></div><div class="pages"></div></div><div class="no">NO. 039</div><div class="t">The Picture of Dorian Gray</div><span class="stamp">Finished</span></div>
+          <div class="item"><div class="book3d"><div class="spine" style="background-image:url(assets/covers/1952.jpg)"></div><div class="front"><img src="assets/covers/1952.jpg"></div><div class="pages"></div></div><div class="no">NO. 038</div><div class="t">The Yellow Wallpaper</div><span class="stamp">Finished</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sets">
+      <h4>The Austen Six</h4>
+      <p class="muted">A set · collect all six novels to complete it</p>
+      <div class="slots">
+        <div class="slot"><img src="assets/covers/1342.jpg"></div>
+        <div class="slot"><img src="assets/covers/161.jpg"></div>
+        <div class="slot"><img src="assets/covers/158.jpg"></div>
+        <div class="slot empty">+</div><div class="slot empty">+</div><div class="slot empty">+</div>
+      </div>
+      <div class="setbar"><span><b>3 of 6</b> collected</span><span>Next: Persuasion · free</span></div>
+      <div class="mini">
+        <div><b>2 / 9</b>Sherlock Holmes canon</div>
+        <div><b>4 / 7</b>Gothic essentials</div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

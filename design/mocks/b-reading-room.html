@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Direction B — The Reading Room</title>
+<link rel="stylesheet" href="fonts.css" />
+<style>
+  :root {
+    --bg: #12272a; --rail: #0e2023; --panel: #183236; --card: #1e3a3f; --card-2: #24454a;
+    --text: #e9f1ee; --muted: #93aca9; --faint: #5f7b78; --butter: #f3cd5b; --line: rgba(255,255,255,.07);
+    --sans: "Jakarta", system-ui, sans-serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); display: grid; grid-template-columns: 92px 1fr; }
+  .rail { background: var(--rail); display: flex; flex-direction: column; align-items: center; padding: 28px 0; gap: 30px; }
+  .mark { width: 42px; height: 42px; border-radius: 12px; background: var(--butter); display: grid; place-items: center; color: #1a2a1c; font-weight: 800; font-size: 20px; margin-bottom: 18px; }
+  .ri { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; }
+  .ri.on { background: var(--card-2); }
+  .ri svg { width: 21px; height: 21px; fill: none; stroke: var(--muted); stroke-width: 1.7; }
+  .ri.on svg { stroke: var(--butter); }
+  .rail .grow { flex: 1; }
+
+  main { padding: 30px 44px 0 44px; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+  .top { display: flex; align-items: center; gap: 40px; height: 52px; }
+  .tabs { display: flex; gap: 38px; font-size: 15px; color: var(--muted); }
+  .tabs .on { color: var(--text); font-weight: 700; position: relative; }
+  .tabs .on::before { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 3px; border-radius: 2px; background: var(--butter); }
+  .search { margin-left: auto; width: 340px; height: 44px; border-radius: 999px; background: var(--card); display: flex; align-items: center; gap: 12px; padding: 0 20px; color: var(--faint); font-size: 14px; }
+  .search svg { width: 18px; stroke: var(--muted); fill: none; stroke-width: 1.8; }
+  .bell { position: relative; } .bell svg { width: 21px; stroke: var(--muted); fill: none; stroke-width: 1.7; }
+  .bell::after { content: ""; position: absolute; top: 0; right: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--butter); }
+  .me { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+  .me small { display: block; color: var(--muted); font-size: 11.5px; }
+  .av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff; flex: none; }
+
+  .grid { display: grid; grid-template-columns: 1fr 420px; gap: 44px; padding-top: 30px; min-height: 0; }
+  h2 { font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+  .sec { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .sec a { color: var(--butter); font-size: 13px; font-weight: 600; }
+
+  .reading { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 28px; }
+  .rc { min-width: 0; }
+  .rc img { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 6px; box-shadow: 0 14px 24px rgba(0,0,0,.35); }
+  .rc .ti { font-size: 13px; font-weight: 700; margin-top: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rc .au { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .bar { height: 4px; border-radius: 2px; background: var(--card-2); margin-top: 9px; position: relative; }
+  .bar i { position: absolute; inset: 0 auto 0 0; background: var(--butter); border-radius: 2px; }
+  .pct { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  .subjects { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+  .tile { height: 78px; border-radius: 14px; background: var(--card); padding: 16px 18px; display: flex; justify-content: space-between; position: relative; overflow: hidden; }
+  .tile b { font-size: 16px; } .tile .n { text-align: right; } .tile .n b { font-size: 24px; display: block; } .tile .n small { color: var(--muted); font-size: 10.5px; }
+  .tile svg { position: absolute; left: 18px; bottom: 12px; width: 28px; height: 28px; stroke: var(--faint); fill: none; stroke-width: 1.5; }
+  .tile.hot { background: var(--butter); color: #1b2a1c; } .tile.hot .n small { color: #4a5134; } .tile.hot svg { stroke: #6b6232; }
+
+  .sets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .set { border-radius: 14px; background: var(--panel); border: 1px solid var(--line); padding: 14px; display: flex; gap: 12px; align-items: center; }
+  .fan { position: relative; width: 58px; height: 62px; flex: none; }
+  .fan img { position: absolute; width: 38px; height: 57px; object-fit: cover; border-radius: 3px; box-shadow: 0 6px 10px rgba(0,0,0,.4); }
+  .set b { font-size: 13.5px; display: block; } .set small { color: var(--muted); font-size: 11.5px; }
+  .segs { display: flex; gap: 3px; margin-top: 8px; } .segs i { display: block; width: 14px; height: 4px; border-radius: 2px; background: var(--card-2); } .segs i.got { background: var(--butter); }
+
+  aside { display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+  .circle { border-radius: 20px; background: linear-gradient(160deg, #234a4f, #1a3539); border: 1px solid var(--line); padding: 20px; }
+  .ch { display: flex; gap: 14px; }
+  .ch img { width: 54px; height: 82px; object-fit: cover; border-radius: 4px; box-shadow: 0 8px 14px rgba(0,0,0,.4); }
+  .ch .k { font-size: 11px; color: var(--butter); letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
+  .ch h3 { margin: 4px 0 2px; font-size: 19px; }
+  .ch p { margin: 0; color: var(--muted); font-size: 12.5px; }
+  .members { margin-top: 16px; display: grid; gap: 9px; }
+  .m { display: grid; grid-template-columns: 28px 64px 1fr 34px; align-items: center; gap: 10px; font-size: 12.5px; }
+  .m .av { width: 28px; height: 28px; font-size: 10.5px; }
+  .m .bar { margin-top: 0; } .m span:last-child { color: var(--muted); font-size: 11.5px; text-align: right; }
+  .m.you { color: var(--butter); font-weight: 700; }
+  .cfoot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+  .pill { background: var(--butter); color: #1b2a1c; font-weight: 700; padding: 8px 16px; border-radius: 999px; font-size: 12.5px; }
+
+  .feed { display: grid; gap: 4px; }
+  .f { display: grid; grid-template-columns: 34px 1fr 30px; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+  .f .av { width: 34px; height: 34px; font-size: 11px; }
+  .f b { color: var(--text); font-weight: 600; }
+  .f q { display: block; color: var(--text); font-style: italic; margin-top: 2px; quotes: "“" "”"; }
+  .f img { width: 30px; height: 44px; object-fit: cover; border-radius: 3px; }
+  .f time { display: block; font-size: 10.5px; color: var(--faint); margin-top: 2px; }
+  .trend { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .trend img { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 5px; box-shadow: 0 10px 18px rgba(0,0,0,.35); }
+  .trend span { display: block; font-size: 11px; color: var(--muted); margin-top: 7px; }
+  .feed .f:last-child { border-bottom: 0; }
+</style>
+</head>
+<body>
+  <div class="rail">
+    <div class="mark">F</div>
+    <div class="ri on"><svg viewBox="0 0 24 24"><path d="M4 11l8-6 8 6v8H4z"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM11 4h4v16h-4zM17 5l3-1 2 14-3 1z"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 19c0-3 2.5-5 5-5s5 2 5 5M11 19c0-3 2.5-5 5-5s5 2 5 5"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div>
+    <div class="grow"></div>
+    <div class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
+  </div>
+
+  <main>
+    <div class="top">
+      <div class="tabs"><span class="on">Home</span><span>Collection</span><span>Circles</span><span>Discover</span></div>
+      <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>Search books, readers, circles…</div>
+      <div class="bell"><svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg></div>
+      <div class="me"><div><b>Reader</b><small>42 volumes · 3 circles</small></div><div class="av" style="background:#b4793c">R</div></div>
+    </div>
+
+    <div class="grid">
+      <section>
+        <div class="sec"><h2>Continue reading</h2><a>Reading queue →</a></div>
+        <div class="reading">
+          <div class="rc"><img src="assets/covers/345.jpg"><div class="ti">Dracula</div><div class="au">Bram Stoker</div><div class="bar"><i style="width:46%"></i></div><div class="pct"><span>46%</span><span>2h left</span></div></div>
+          <div class="rc"><img src="assets/covers/2701.jpg"><div class="ti">Moby Dick</div><div class="au">Herman Melville</div><div class="bar"><i style="width:12%"></i></div><div class="pct"><span>12%</span><span>14h left</span></div></div>
+          <div class="rc"><img src="assets/covers/1661.jpg"><div class="ti">The Adventures of Sherlock Holmes</div><div class="au">Arthur Conan Doyle</div><div class="bar"><i style="width:64%"></i></div><div class="pct"><span>64%</span><span>3h left</span></div></div>
+          <div class="rc"><img src="assets/covers/161.jpg"><div class="ti">Sense and Sensibility</div><div class="au">Jane Austen</div><div class="bar"><i style="width:30%"></i></div><div class="pct"><span>30%</span><span>7h left</span></div></div>
+          <div class="rc"><img src="assets/covers/1260.jpg"><div class="ti">Jane Eyre</div><div class="au">Charlotte Brontë</div><div class="bar"><i style="width:8%"></i></div><div class="pct"><span>8%</span><span>12h left</span></div></div>
+        </div>
+
+        <div class="sec"><h2>Your collection by subject</h2><a>All 42 volumes →</a></div>
+        <div class="subjects">
+          <div class="tile"><b>Gothic</b><div class="n"><b>12</b><small>volumes</small></div><svg viewBox="0 0 24 24"><path d="M12 3l7 6v12H5V9z M10 21v-5h4v5"/></svg></div>
+          <div class="tile"><b>Adventure</b><div class="n"><b>9</b><small>volumes</small></div><svg viewBox="0 0 24 24"><path d="M3 20l6-12 4 7 3-4 5 9z"/></svg></div>
+          <div class="tile hot"><b>Romance</b><div class="n"><b>7</b><small>volumes</small></div><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg></div>
+          <div class="tile"><b>Mystery</b><div class="n"><b>6</b><small>volumes</small></div><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="5"/><path d="M14 14l6 6"/></svg></div>
+          <div class="tile"><b>Philosophy</b><div class="n"><b>4</b><small>volumes</small></div><svg viewBox="0 0 24 24"><path d="M5 20h14M7 20V9M12 20V9M17 20V9M4 9l8-5 8 5z"/></svg></div>
+          <div class="tile"><b>Poetry</b><div class="n"><b>4</b><small>volumes</small></div><svg viewBox="0 0 24 24"><path d="M20 4C10 5 6 11 5 20M9 15c4 0 7-2 9-6"/></svg></div>
+        </div>
+
+        <div class="sec"><h2>Sets in progress</h2><a>Browse sets →</a></div>
+        <div class="sets">
+          <div class="set"><div class="fan"><img src="assets/covers/1342.jpg" style="left:0;top:4px;transform:rotate(-8deg)"><img src="assets/covers/161.jpg" style="left:10px;top:2px"><img src="assets/covers/158.jpg" style="left:20px;top:4px;transform:rotate(8deg)"></div><div><b>The Austen Six</b><small>3 of 6 collected</small><div class="segs"><i class="got"></i><i class="got"></i><i class="got"></i><i></i><i></i><i></i></div></div></div>
+          <div class="set"><div class="fan"><img src="assets/covers/1661.jpg" style="left:2px;top:3px;transform:rotate(-6deg)"><img src="assets/covers/244.jpg" style="left:18px;top:3px;transform:rotate(6deg)"></div><div><b>Holmes canon</b><small>2 of 9 collected</small><div class="segs"><i class="got"></i><i class="got"></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
+          <div class="set"><div class="fan"><img src="assets/covers/43.jpg" style="left:0;top:4px;transform:rotate(-8deg)"><img src="assets/covers/174.jpg" style="left:10px;top:2px"><img src="assets/covers/345.jpg" style="left:20px;top:4px;transform:rotate(8deg)"></div><div><b>Gothic essentials</b><small>4 of 7 collected</small><div class="segs"><i class="got"></i><i class="got"></i><i class="got"></i><i class="got"></i><i></i><i></i><i></i></div></div></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="circle">
+          <div class="ch">
+            <img src="assets/covers/345.jpg">
+            <div><div class="k">Reading together</div><h3>Gothic October</h3><p>8 readers · Dracula · finish by Oct 31</p></div>
+          </div>
+          <div class="members">
+            <div class="m"><div class="av" style="background:#9c4436">M</div><span>Mara</span><div class="bar"><i style="width:72%"></i></div><span>72%</span></div>
+            <div class="m"><div class="av" style="background:#3d6b5f">T</div><span>Tomás</span><div class="bar"><i style="width:51%"></i></div><span>51%</span></div>
+            <div class="m you"><div class="av" style="background:#b4793c">R</div><span>You</span><div class="bar"><i style="width:46%"></i></div><span>46%</span></div>
+            <div class="m"><div class="av" style="background:#6a5a9e">E</div><span>Elin</span><div class="bar"><i style="width:38%"></i></div><span>38%</span></div>
+          </div>
+          <div class="cfoot"><span>23 new notes in Ch. 12</span><span class="pill">Join discussion</span></div>
+        </div>
+
+        <div>
+          <div class="sec" style="margin-bottom:6px"><h2 style="font-size:18px">From your circles</h2><a>See all</a></div>
+          <div class="feed">
+            <div class="f"><div class="av" style="background:#9c4436">M</div><div><b>Mara</b> finished <b>The Great Gatsby</b> · ★★★★★<time>12 min ago</time></div><img src="assets/covers/64317.jpg"></div>
+            <div class="f"><div class="av" style="background:#6a5a9e">E</div><div><b>Elin</b> highlighted in <b>Jane Eyre</b><q>I am no bird; and no net ensnares me.</q></div><img src="assets/covers/1260.jpg"></div>
+            <div class="f"><div class="av" style="background:#2f5d80">L</div><div><b>Little Lantern Books</b> shared a shelf: <b>Short &amp; Sharp</b><time>Indie bookstore · 5 h ago</time></div><img src="assets/covers/1952.jpg"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sec" style="margin-bottom:12px"><h2 style="font-size:18px">Trending in your circles</h2><a>Discover →</a></div>
+          <div class="trend">
+            <div><img src="assets/covers/174.jpg"><span>5 friends</span></div>
+            <div><img src="assets/covers/1952.jpg"><span>3 friends</span></div>
+            <div><img src="assets/covers/219.jpg"><span>3 friends</span></div>
+            <div><img src="assets/covers/11.jpg"><span>2 friends</span></div>
+            <div><img src="assets/covers/36.jpg"><span>2 friends</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>
