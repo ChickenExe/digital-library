@@ -1,3 +1,4 @@
+import { Scramble } from "../../components/motion/Scramble";
 import styles from "./CirclesView.module.css";
 
 const POINTS = [
@@ -33,22 +34,24 @@ export function CirclesView() {
       <section className={styles.intro}>
         <div className="section-label mono">
           <span>
-            <b>4.0</b> — Circles
+            <b>4.0</b> — <Scramble text="Circles" />
           </span>
           <span className={styles.soon}>In development</span>
         </div>
-        <h1 className={styles.title}>
-          Reading,
-          <br />
-          together.
+        <h1 className={styles.title} aria-label="Reading, together.">
+          {["Reading,", "together."].map((line, i) => (
+            <span key={line} className={styles.line} aria-hidden>
+              <span style={{ "--i": i } as React.CSSProperties}>{line}</span>
+            </span>
+          ))}
         </h1>
-        <p className={styles.lede}>
+        <p className={`${styles.lede} rise-in`} style={{ "--rise-delay": "260ms" } as React.CSSProperties}>
           Circles turn a book into a shared event: small groups reading the same pages, at their own pace, with notes
           that never spoil what&rsquo;s ahead.
         </p>
-        <div className={styles.points}>
-          {POINTS.map((p) => (
-            <div key={p.no} className={styles.point}>
+        <div className={`${styles.points} draw-rule`} style={{ "--rule-color": "var(--color-ink)", "--rule-delay": "320ms" } as React.CSSProperties}>
+          {POINTS.map((p, i) => (
+            <div key={p.no} className={`${styles.point} rise-in`} style={{ "--i": i * 3, "--rise-delay": "380ms" } as React.CSSProperties}>
               <div className="mono">{p.no}</div>
               <h3>{p.title}</h3>
               <p>{p.body}</p>

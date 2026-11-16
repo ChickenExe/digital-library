@@ -1,4 +1,6 @@
+import { motion } from "motion/react";
 import type { BookFormat } from "../../bindings/BookFormat";
+import { EASE, SPRING } from "../../lib/motion";
 import {
   FONTS,
   LEADINGS,
@@ -22,8 +24,22 @@ export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; o
 
   return (
     <>
-      <div className={styles.scrim} onClick={onClose} />
-      <div className={styles.panel} role="dialog" aria-label="Reading settings">
+      <motion.div
+        className={styles.scrim}
+        onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      />
+      <motion.div
+        className={styles.panel}
+        role="dialog"
+        aria-label="Reading settings"
+        style={{ originX: 1, originY: 0 }}
+        initial={{ opacity: 0, scale: 0.94, y: -8 }}
+        animate={{ opacity: 1, scale: 1, y: 0, transition: SPRING.panel }}
+        exit={{ opacity: 0, scale: 0.96, y: -6, transition: { duration: 0.16, ease: EASE.in } }}
+      >
         <Section label="Theme">
           <div className={styles.themes}>
             {(Object.keys(THEMES) as ThemeId[]).map((id) => {
@@ -107,7 +123,7 @@ export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; o
             />
           </Section>
         )}
-      </div>
+      </motion.div>
     </>
   );
 }

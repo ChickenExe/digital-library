@@ -7,13 +7,15 @@
 .head { padding: 30px var(--space-12) 0; border-bottom: 1px solid var(--color-rule); }
 .titleRow { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-6); }
 .title {
+  display: flex;
+  align-items: baseline;
   margin: var(--space-3) 0 0;
   font-size: 84px;
   font-weight: 900;
   letter-spacing: -0.06em;
   line-height: 0.85;
 }
-.title span { font-size: 22px; font-weight: 700; letter-spacing: 0; font-stretch: 118%; text-transform: uppercase; margin-left: 6px; }
+.unit { font-size: 22px; font-weight: 700; letter-spacing: 0; font-stretch: 118%; text-transform: uppercase; margin-left: 6px; }
 .controls { display: flex; gap: var(--space-2); padding-bottom: 4px; }
 .search, .select {
   height: var(--control-height);
@@ -27,11 +29,13 @@
 .search:focus { outline: 2px solid var(--color-focus); outline-offset: -1px; }
 
 .tabs { display: flex; align-items: center; gap: 4px; margin-top: var(--space-6); padding-bottom: var(--space-3); }
-.tabs button { padding: 8px 12px; border-radius: var(--radius-pill); letter-spacing: inherit; text-transform: inherit; display: flex; gap: 6px; }
+.tabs button { position: relative; padding: 8px 12px; border-radius: var(--radius-pill); letter-spacing: inherit; text-transform: inherit; }
+.tabLabel { position: relative; display: flex; gap: 6px; }
+.pill { position: absolute; inset: 0; border-radius: var(--radius-pill); background: var(--color-ink); }
 .tabs button:hover { background: var(--color-hover); }
 .tabs button b { font-weight: 500; opacity: 0.45; }
 .tabs button em { font-style: normal; opacity: 0.55; }
-.tabs .on, .tabs .on:hover { background: var(--color-ink); color: var(--color-paper); }
+.tabs .on, .tabs .on:hover { background: transparent; color: var(--color-paper); transition: color 200ms ease 60ms; }
 .divider { width: 1px; height: 18px; background: var(--color-rule); margin: 0 var(--space-3); }
 
 .grid {

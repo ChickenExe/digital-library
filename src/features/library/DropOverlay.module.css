@@ -14,7 +14,6 @@
   border-radius: var(--radius-lg);
   background: var(--color-red);
   color: #fff;
-  transform: rotate(-3deg);
   box-shadow: var(--shadow-card);
 }
 .icon { font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.8; }

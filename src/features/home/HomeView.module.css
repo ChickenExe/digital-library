@@ -27,12 +27,12 @@
 .tag p { font-size: 14px; line-height: 1.35; margin: 10px 0 0; color: var(--color-text-muted); }
 .tag strong { color: var(--color-text); font-weight: 700; }
 
-.metrics { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--color-rule-strong); margin-top: 28px; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 28px; }
 .metric { padding: 14px 16px 18px 0; color: var(--color-text-muted); }
 .metric + .metric { border-left: 1px solid var(--color-rule); padding-left: 16px; }
 .metricValue { color: var(--color-text); font-size: 40px; font-weight: 700; font-stretch: 112%; letter-spacing: -0.03em; line-height: 1; margin-top: 10px; }
 
-.rule { border-top: 1px solid var(--color-rule); padding-top: 14px; margin-top: 22px; }
+.rule { padding-top: 14px; margin-top: 22px; }
 .rule button { color: var(--color-text-muted); }
 .rule button:hover { color: var(--color-text); }
 
@@ -60,7 +60,15 @@
 .setHead b { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
 .setHead span { color: var(--color-text-muted); }
 .squares { display: flex; gap: 4px; margin-top: 8px; }
-.sq { width: 20px; height: 20px; border: 1px solid var(--color-ink); transition: transform 120ms ease; }
+.sq {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--color-ink);
+  transition: transform 160ms var(--ease-out), background 300ms ease, border-color 300ms ease;
+  animation: sq-in 520ms var(--ease-out) both;
+  animation-delay: calc(400ms + var(--i, 0) * 22ms);
+}
+@keyframes sq-in { from { transform: scale(0); } }
 .sq:hover { transform: translateY(-2px); }
 .sq.got { background: var(--color-ink); }
 .sq.next { background: var(--color-red); border-color: var(--color-red); }

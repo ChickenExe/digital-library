@@ -1,8 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Book } from "../../bindings/Book";
 import { api, errorMessage } from "../../lib/api";
 import { authorLine, debounce } from "../../lib/format";
-import { useLibrary } from "../../store/library";
+import { EASE } from "../../lib/motion";
+import { useLibrary, type Origin } from "../../store/library";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 import { THEMES, useReaderSettings } from "./settings";
 import styles from "./ReaderView.module.css";
@@ -21,7 +23,15 @@ const HIDE_AFTER_MS = 2600;
  * Distraction-free reading. Controls fade out while you read and come back
  * when the mouse moves; everything else is the page.
  */
-export function ReaderView({ bookId }: { bookId: string }) {
+/** A clip-path that frames exactly the rectangle the book was opened from. */
+function insetFor(o: Origin | null, radius: number): string {
+  if (!o) return `inset(18% 26% 18% 26% round ${radius}px)`;
+  const right = Math.max(0, window.innerWidth - (o.left + o.width));
+  const bottom = Math.max(0, window.innerHeight - (o.top + o.height));
+  return `inset(${o.top}px ${right}px ${bottom}px ${o.left}px round ${radius}px)`;
+}
+
+export function ReaderView({ bookId, origin }: { bookId: string; origin: Origin | null }) {
   const closeReader = useLibrary((s) => s.closeReader);
   const toast = useLibrary((s) => s.toast);
   const themeId = useReaderSettings((s) => s.theme);
@@ -31,6 +41,9 @@ export function ReaderView({ bookId }: { bookId: string }) {
   const [info, setInfo] = useState<ReadingInfo>({});
   const [chrome, setChrome] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Load the (heavy) book engine only once the window has finished opening,
+  // so parsing never steals frames from the expand animation.
+  const [opened, setOpened] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -88,7 +101,21 @@ export function ReaderView({ bookId }: { bookId: string }) {
   const timeLeft = info.minutesLeft !== undefined ? formatMinutes(info.minutesLeft) : null;
 
   return (
-    <div
+    <motion.div
+      // The reader opens like a window out of the cover you clicked, and closes back into it.
+      initial={{ clipPath: insetFor(origin, 4), opacity: origin ? 1 : 0 }}
+      animate={{
+        clipPath: "inset(0px 0px 0px 0px round 0px)",
+        opacity: 1,
+        // A window "lifting" off the shelf reads better with a symmetric ease than the house expo-out.
+        transition: { duration: 0.6, ease: [0.7, 0, 0.2, 1] },
+      }}
+      exit={{
+        clipPath: insetFor(origin, 4),
+        opacity: origin ? [1, 1, 0] : 0,
+        transition: { duration: 0.46, ease: EASE.inOut },
+      }}
+      onAnimationComplete={() => setOpened(true)}
       className={styles.reader}
       style={
         {
@@ -117,14 +144,22 @@ export function ReaderView({ bookId }: { bookId: string }) {
         </button>
       </header>
 
-      {settingsOpen && <ReaderSettingsPanel format={book?.format ?? "epub"} onClose={() => setSettingsOpen(false)} />}
+      <AnimatePresence>
+        {settingsOpen && (
+          <ReaderSettingsPanel
+            key="settings"
+            format={book?.format ?? "epub"}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <div className={styles.stage}>
         <Suspense fallback={null}>
-          {book?.format === "epub" && (
+          {opened && book?.format === "epub" && (
             <EpubReader book={book} initialLocator={book.progress?.locator} onProgress={onProgress} />
           )}
-          {book?.format === "pdf" && (
+          {opened && book?.format === "pdf" && (
             <PdfReader book={book} initialLocator={book.progress?.locator} onProgress={onProgress} />
           )}
         </Suspense>
@@ -139,7 +174,7 @@ export function ReaderView({ bookId }: { bookId: string }) {
       <div className={styles.progress}>
         <i style={{ width: `${percent * 100}%` }} />
       </div>
-    </div>
+    </motion.div>
   );
 }
 

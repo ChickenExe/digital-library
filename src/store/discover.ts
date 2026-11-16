@@ -9,7 +9,7 @@ import type { CatalogRow } from "../bindings/CatalogRow";
 import type { CatalogStatus } from "../bindings/CatalogStatus";
 import type { DownloadProgress } from "../bindings/DownloadProgress";
 import { api, errorMessage, listingKey } from "../lib/api";
-import { useLibrary } from "./library";
+import { originOf, useLibrary, type Origin } from "./library";
 
 const PAGE = 48;
 
@@ -25,7 +25,9 @@ type DiscoverState = {
   total: number;
   loadingMore: boolean;
   /** The listing open in the detail sheet. */
-  open: { entry: CatalogEntry; detail: CatalogDetail | null } | null;
+  open: { entry: CatalogEntry; detail: CatalogDetail | null; from: Origin | null } | null;
+  /** The card whose cover is currently "lifted" into the sheet (hidden in place until it lands back). */
+  morphing: string | null;
   /** keyed by listingKey */
   downloads: Record<string, DownloadProgress | "starting">;
 
@@ -35,7 +37,9 @@ type DiscoverState = {
   setLanguage: (lang: string | null) => void;
   setBrowse: (b: Browse | null) => void;
   loadMore: () => Promise<void>;
-  openListing: (entry: CatalogEntry) => Promise<void>;
+  /** `morph` names the card (and cover element) the sheet opens from, so the cover can fly into it. */
+  openListing: (entry: CatalogEntry, morph?: { key: string; el: Element | null }) => Promise<void>;
+  endMorph: () => void;
   closeListing: () => void;
   acquire: (entry: CatalogEntry, openAfter?: boolean) => Promise<void>;
   onDownloadProgress: (p: DownloadProgress) => void;
@@ -52,6 +56,7 @@ export const useDiscover = create<DiscoverState>((set, get) => ({
   total: 0,
   loadingMore: false,
   open: null,
+  morphing: null,
   downloads: {},
 
   init: async () => {
@@ -119,17 +124,22 @@ export const useDiscover = create<DiscoverState>((set, get) => ({
     }
   },
 
-  openListing: async (entry) => {
-    set({ open: { entry, detail: null } });
+  openListing: async (entry, morph) => {
+    set({
+      open: { entry, detail: null, from: originOf(morph?.el) },
+      morphing: morph?.el ? morph.key : null,
+    });
     try {
       const detail = await api.catalogDetail(entry.provider, entry.id);
-      if (get().open?.entry.id === entry.id) set({ open: { entry: detail.entry, detail } });
+      const current = get().open;
+      if (current?.entry.id === entry.id) set({ open: { ...current, entry: detail.entry, detail } });
     } catch (e) {
       useLibrary.getState().toast(errorMessage(e), "error");
     }
   },
 
   closeListing: () => set({ open: null }),
+  endMorph: () => set({ morphing: null }),
 
   acquire: async (entry, openAfter = false) => {
     const key = listingKey(entry);
@@ -174,6 +184,7 @@ function markOwned(
     open:
       open && open.entry.id === entry.id
         ? {
+            ...open,
             entry: mark(open.entry),
             detail: open.detail ? { ...open.detail, entry: mark(open.detail.entry) } : null,
           }

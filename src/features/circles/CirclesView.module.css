@@ -3,7 +3,7 @@
 .soon { color: var(--color-red); }
 .title { font-size: clamp(72px, 8vw, 128px); font-weight: 900; font-stretch: 112%; letter-spacing: -0.05em; line-height: 0.86; margin: var(--space-8) 0 var(--space-6); }
 .lede { font-size: 18px; line-height: 1.45; color: var(--color-text-muted); max-width: 520px; margin: 0; }
-.points { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--color-rule-strong); margin-top: var(--space-10); }
+.points { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: var(--space-10); }
 .point { padding: 14px 16px 0 0; color: var(--color-text-muted); }
 .point + .point { border-left: 1px solid var(--color-rule); padding-left: 16px; }
 .point h3 { color: var(--color-text); font-size: 17px; font-weight: 800; font-stretch: 112%; text-transform: uppercase; margin: 10px 0 8px; }
@@ -23,3 +23,13 @@
 .you span { background: var(--color-red); }
 .legend { margin-top: 26px; opacity: 0.5; }
 .paper blockquote { margin: 28px 0 18px; font-size: 34px; font-weight: 800; font-stretch: 115%; text-transform: uppercase; line-height: 1; letter-spacing: -0.02em; }
+
+/* Headline lines rise out of masks. */
+.line { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.line > span { display: inline-block; animation: line-up 1000ms var(--ease-out) both; animation-delay: calc(80ms + var(--i) * 90ms); }
+@keyframes line-up { from { transform: translateY(105%); } }
+/* Preview cards are dealt in, like the Home deck. */
+.card { animation: deal 1000ms var(--ease-out) both; }
+.ink { animation-delay: 200ms; }
+.paper { animation-delay: 320ms; }
+@keyframes deal { from { translate: 60% 30%; rotate: 14deg; opacity: 0; } 40% { opacity: 1; } }

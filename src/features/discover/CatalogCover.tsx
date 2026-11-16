@@ -9,7 +9,7 @@ export function CatalogCover({ entry, size = "md" }: { entry: CatalogEntry; size
   const [state, setState] = useState<"loading" | "ok" | "failed">("loading");
   const hue = hueFor(entry.id);
   return (
-    <div className={`${styles.cover} ${styles[size]}`}>
+    <div data-cover className={`${styles.cover} ${styles[size]}`}>
       {state !== "ok" && (
         <div
           className={styles.placeholder}
@@ -22,6 +22,10 @@ export function CatalogCover({ entry, size = "md" }: { entry: CatalogEntry; size
       {state !== "failed" && (
         <img
           src={catalogCoverUrl(entry)}
+          // Already cached (e.g. the flying copy of a cover): show it immediately.
+          ref={(img) => {
+            if (img?.complete && img.naturalWidth > 0 && state === "loading") setState("ok");
+          }}
           alt=""
           loading="lazy"
           draggable={false}

@@ -10,9 +10,7 @@
   background: color-mix(in srgb, var(--r-bg) 92%, var(--r-text));
   color: var(--r-text);
   box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.35), 0 0 0 1px color-mix(in srgb, var(--r-text) 10%, transparent);
-  animation: pop 200ms var(--ease-out);
 }
-@keyframes pop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
 .section { margin-top: var(--space-4); }
 .label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--r-muted); margin-bottom: var(--space-2); }
 

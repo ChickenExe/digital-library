@@ -38,3 +38,11 @@
 .ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
 .cover { display: block; transform: rotate(4deg) translateY(10px); box-shadow: 0 30px 50px -10px rgba(0, 0, 0, 0.4); transition: transform 300ms var(--ease-out); }
 .cover:hover { transform: rotate(0) translateY(0); }
+
+/* Headline words rise out of masks, one after another. */
+.word { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.06em; margin-bottom: -0.06em; }
+.word > span { display: inline-block; animation: word-up 900ms var(--ease-out) both; animation-delay: calc(120ms + var(--i) * 55ms); }
+@keyframes word-up { from { transform: translateY(105%); } }
+.summary, .actions, .author { animation: rise-in 700ms var(--ease-out) both; animation-delay: 420ms; }
+.cover { animation: cover-in 1100ms var(--ease-out) both; animation-delay: 150ms; }
+@keyframes cover-in { from { translate: 40px 30px; rotate: 14deg; opacity: 0; } }

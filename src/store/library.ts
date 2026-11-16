@@ -13,7 +13,17 @@ import type { LibraryStats } from "../bindings/LibraryStats";
 import { api, errorMessage } from "../lib/api";
 
 export type Section = "home" | "discover" | "collection" | "circles";
-export type View = { kind: Section } | { kind: "reader"; bookId: string; returnTo: Section };
+/** Where a book was opened from, so the reader can expand out of (and collapse back into) it. */
+export type Origin = { top: number; left: number; width: number; height: number };
+export type View =
+  | { kind: Section }
+  | { kind: "reader"; bookId: string; returnTo: Section; origin: Origin | null };
+
+export const originOf = (el: Element | null | undefined): Origin | null => {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { top: r.top, left: r.left, width: r.width, height: r.height };
+};
 
 type Toast = { id: number; tone: "info" | "error"; text: string };
 
@@ -33,7 +43,7 @@ type LibraryState = {
   setImportProgress: (p: ImportProgress | null) => void;
   toggleFavorite: (book: Book) => Promise<void>;
   deleteBook: (book: Book) => Promise<void>;
-  openBook: (id: string) => void;
+  openBook: (id: string, from?: Element | null) => void;
   closeReader: () => void;
   navigate: (view: Section) => void;
   toast: (text: string, tone?: Toast["tone"]) => void;
@@ -112,9 +122,16 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     }
   },
 
-  openBook: (id) => {
+  openBook: (id, from) => {
     const view = get().view;
-    set({ view: { kind: "reader", bookId: id, returnTo: view.kind === "reader" ? view.returnTo : view.kind } });
+    set({
+      view: {
+        kind: "reader",
+        bookId: id,
+        returnTo: view.kind === "reader" ? view.returnTo : view.kind,
+        origin: originOf(from),
+      },
+    });
   },
   closeReader: () => {
     const view = get().view;

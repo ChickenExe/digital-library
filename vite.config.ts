@@ -19,5 +19,6 @@ export default defineConfig({
     // WebView2 on Windows is evergreen Chromium; WebKitGTK/WKWebView are recent Safari.
     target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome120" : "safari17",
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    minify: process.env.TAURI_ENV_DEBUG ? false : "oxc",
   },
 });

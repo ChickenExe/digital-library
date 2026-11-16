@@ -1,35 +1,27 @@
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: rgba(16, 16, 16, 0.32);
-  display: flex;
-  justify-content: flex-end;
-  animation: fade 160ms ease;
-}
+/* Three stacked layers: scrim, sliding paper panel, and the (unmoving) content. */
+.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(16, 16, 16, 0.32); }
+.panel, .sheet { position: fixed; top: 0; right: 0; bottom: 0; width: min(600px, 92vw); }
+.panel { z-index: 41; background: var(--color-paper); box-shadow: -30px 0 60px -20px rgba(0, 0, 0, 0.3); }
 .sheet {
-  position: relative;
-  width: min(600px, 92vw);
-  height: 100%;
+  z-index: 42;
   overflow-y: auto;
-  background: var(--color-paper);
+  overflow-x: hidden;
   padding: var(--space-6) var(--space-10) var(--space-12);
-  animation: slide 260ms var(--ease-out);
   user-select: text;
 }
-@keyframes fade { from { opacity: 0; } }
-@keyframes slide { from { transform: translateX(60px); opacity: 0; } }
 .top { display: flex; justify-content: space-between; color: var(--color-text-muted); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-rule); }
 .top button { letter-spacing: inherit; text-transform: inherit; }
 .top button:hover { color: var(--color-red); }
 
 .hero { display: grid; grid-template-columns: 170px 1fr; gap: var(--space-6); align-items: end; margin-top: var(--space-8); }
-.cover { width: 170px; transform: rotate(-3deg); }
+.cover { width: 170px; }
+/* The flying copy of the cover, above every layer. */
+.ghost { position: fixed; z-index: 60; transform-origin: 0 0; pointer-events: none; will-change: transform; }
 .title { font-size: 38px; font-weight: 900; font-stretch: 115%; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.92; margin: 0 0 var(--space-3); }
 .author { color: var(--color-text-muted); }
 .actions { margin-top: var(--space-6); display: flex; gap: var(--space-2); }
 
-.facts { display: grid; grid-template-columns: repeat(2, 1fr); margin: var(--space-8) 0 0; border-top: 1px solid var(--color-rule-strong); }
+.facts { display: grid; grid-template-columns: repeat(2, 1fr); margin: var(--space-8) 0 0; }
 .facts div { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--color-rule); }
 .facts div:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--color-rule); }
 .facts dt { color: var(--color-text-muted); }

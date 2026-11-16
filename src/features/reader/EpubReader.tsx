@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { animate } from "motion/react";
 import ePub, { type Book as EpubBook, type Contents, type NavItem, type Rendition } from "epubjs";
 import type { Book } from "../../bindings/Book";
 import { fetchBookBytes } from "../../lib/api";
+import { EASE, prefersReducedMotion } from "../../lib/motion";
 import type { ProgressHandler } from "./ReaderView";
 import { epubCss, useReaderSettings, WIDTHS } from "./settings";
 import styles from "./Reader.module.css";
@@ -69,7 +71,7 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
         onProgressRef.current(loc.start.cfi, percent, { chapter: chapterFor(toc, loc.start.href), minutesLeft });
       });
       // Arrow keys while focus is inside the book's iframe.
-      r.on("keyup", (e: KeyboardEvent) => navigateKey(e, r));
+      r.on("keyup", (e: KeyboardEvent) => navigateKey(e, turnRef.current));
 
       await r.display(cfiRef.current || undefined);
       if (cancelled) return;
@@ -82,7 +84,7 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
       if (!cancelled) r.reportLocation();
     })().catch((e) => !cancelled && setError(String(e?.message ?? e)));
 
-    const onKey = (e: KeyboardEvent) => rendition.current && navigateKey(e, rendition.current);
+    const onKey = (e: KeyboardEvent) => navigateKey(e, turnRef.current);
     window.addEventListener("keyup", onKey);
     return () => {
       cancelled = true;
@@ -115,11 +117,37 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
     };
   }, [css, ready]);
 
+  /**
+   * Page turns glide: the old page slips out along the reading direction and the
+   * new one settles in from the other side. Rapid presses skip the animation.
+   */
+  const turning = useRef(false);
+  const turn = async (dir: 1 | -1) => {
+    const r = rendition.current;
+    const el = host.current;
+    if (!r) return;
+    const go = () => (dir > 0 ? r.next() : r.prev());
+    if (turning.current || !el || flow === "scrolled" || prefersReducedMotion()) {
+      await go();
+      return;
+    }
+    turning.current = true;
+    try {
+      await animate(el, { x: -dir * 18, opacity: 0 }, { duration: 0.11, ease: EASE.in });
+      await go();
+      await animate(el, { x: [dir * 18, 0], opacity: [0, 1] }, { duration: 0.3, ease: EASE.out });
+    } finally {
+      turning.current = false;
+    }
+  };
+  const turnRef = useRef(turn);
+  turnRef.current = turn;
+
   if (error) return <div className={styles.error}>Couldn’t open this EPUB: {error}</div>;
 
   return (
     <div className={styles.epub}>
-      <button className={styles.turn} onClick={() => void rendition.current?.prev()} aria-label="Previous page">
+      <button className={styles.turn} onClick={() => void turn(-1)} aria-label="Previous page">
         <span>←</span>
       </button>
       <div
@@ -127,16 +155,16 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
         className={`${styles.column} ${flow === "scrolled" ? styles.scrolled : ""}`}
         style={{ maxWidth: WIDTHS[width].px, opacity: ready ? 1 : 0 }}
       />
-      <button className={styles.turn} onClick={() => void rendition.current?.next()} aria-label="Next page">
+      <button className={styles.turn} onClick={() => void turn(1)} aria-label="Next page">
         <span>→</span>
       </button>
     </div>
   );
 }
 
-function navigateKey(e: KeyboardEvent, r: Rendition) {
-  if (e.key === "ArrowLeft" || e.key === "PageUp") void r.prev();
-  if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") void r.next();
+function navigateKey(e: KeyboardEvent, turn: (dir: 1 | -1) => Promise<void>) {
+  if (e.key === "ArrowLeft" || e.key === "PageUp") void turn(-1);
+  if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") void turn(1);
 }
 
 function flatten(items: NavItem[]): NavItem[] {

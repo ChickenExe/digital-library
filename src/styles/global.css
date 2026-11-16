@@ -61,3 +61,33 @@ button:disabled { cursor: default; opacity: 0.55; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(16, 16, 16, 0.22); border-radius: 5px; border: 3px solid var(--color-bg); }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- motion utilities ---------- */
+
+/* Hairline that draws itself left → right when it mounts. Use instead of border-top. */
+.draw-rule { position: relative; }
+.draw-rule::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--rule-color, var(--color-rule));
+  transform-origin: left center;
+  animation: draw-rule 900ms var(--ease-out) both;
+  animation-delay: var(--rule-delay, 0ms);
+}
+@keyframes draw-rule { from { transform: scaleX(0); } }
+
+/* Content that rises in on mount; stagger with --i. */
+.rise-in { animation: rise-in 620ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 28ms + var(--rise-delay, 0ms)); }
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}

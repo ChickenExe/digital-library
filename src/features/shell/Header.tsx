@@ -1,3 +1,5 @@
+import { motion } from "motion/react";
+import { SPRING } from "../../lib/motion";
 import type { Section } from "../../store/library";
 import { useLibrary } from "../../store/library";
 import { useDiscover } from "../../store/discover";
@@ -13,7 +15,7 @@ const NAV: { id: Section; label: string }[] = [
 const IS_MAC = navigator.userAgent.includes("Mac");
 
 export function Header() {
-  const view = useLibrary((s) => s.view.kind);
+  const view = useLibrary((s) => (s.view.kind === "reader" ? s.view.returnTo : s.view.kind));
   const navigate = useLibrary((s) => s.navigate);
   const importing = useLibrary((s) => s.importing);
   const pickAndImport = useLibrary((s) => s.pickAndImport);
@@ -34,8 +36,11 @@ export function Header() {
               navigate(n.id);
             }}
           >
-            <b>0{i + 1}</b>
-            {n.label}
+            {view === n.id && <motion.span layoutId="nav-pill" className={styles.pill} transition={SPRING.pill} />}
+            <span className={styles.label}>
+              <b>0{i + 1}</b>
+              {n.label}
+            </span>
           </button>
         ))}
       </nav>

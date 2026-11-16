@@ -19,8 +19,9 @@ export function GetButton({ entry, large, variant = "primary" }: Props) {
         className={`btn btn-ink${large ? " btn-lg" : ""}`}
         onClick={(e) => {
           e.stopPropagation();
+          const from = e.currentTarget;
+          openBook(entry.ownedBookId!, from);
           closeListing();
-          openBook(entry.ownedBookId!);
         }}
       >
         Read →

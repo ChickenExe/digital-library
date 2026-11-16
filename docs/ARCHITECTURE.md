@@ -49,6 +49,7 @@ the pixels. They talk through a small, typed command API.
 | **Covers proxied through Rust (`catalog-cover://`)** | Covers are cached on disk, at most 6 fetches run at once (polite to the provider), the CSP stays free of remote origins, and the webview can't request arbitrary URLs (only known provider + id). |
 | **Design tokens (`styles/tokens.css`)** | Every color, spacing value, radius and shadow is a CSS variable. The app uses direction C, "Index" (see `design/mocks/`): Archivo + JetBrains Mono, red-orange on ink and paper, numbered sections. |
 | **A separate, calm reader** | The library is loud; the reader is deliberately quiet. Its four themes avoid pure black on white, and Night uses soft text against glare. Typefaces are Literata and Atkinson Hyperlegible, with a 60–75 character measure, ragged right and hyphenation. Controls auto-hide. Settings live in `features/reader/settings.ts` and are injected into the EPUB iframe as a stylesheet, or applied as a filter to PDF pages. |
+| **Motion system (`lib/motion.ts`)** | One vocabulary for every tween, derived from the Index shape language. The house curve is expo-out (fast start, long settle). Moves are axis-true slides, never wobbles, and there's no bouncy overshoot. Type rises out of masks, hairlines draw, the black pills travel between options, and tilted cards are "dealt". Motion (the framer-motion successor) handles enter/exit, layout and shared pills. Simple on-mount effects are CSS keyframes (`.rise-in`, `.draw-rule`). The cover → listing flight is a hand-rolled FLIP with a portalled ghost: one element instead of hundreds of layout-tracked cards. The reader opens as a `clip-path` window out of the clicked cover and only loads the book once open, so parsing never drops animation frames. Everything respects the OS "reduce motion" setting. |
 | **Permanent volume numbers** | Each import takes the next number from a counter (migration 0003), so "No. 042" never changes, even after deletions. |
 | **Sets** | Curated groups (an author's novels, a canon) defined in `catalog/sets.rs` by Gutenberg id. Ownership comes from the library's `source_*` columns, so getting a book from Discover fills its slot. |
 
@@ -108,7 +109,10 @@ src/
   features/circles/  Circles preview (needs accounts + sync; see STOREFRONT.md)
   features/reader/   calm reader, settings panel, EPUB/PDF engines
   store/discover.ts  catalog rows, browse results, open listing, in-flight downloads
-  styles/            tokens.css (design system) + global.css
+  styles/            tokens.css (design system) + global.css (incl. motion utilities)
+  lib/motion.ts      easing, durations, springs and shared variants
+  components/motion/ MaskNumber, CountUp, Scramble
+  components/ErrorBoundary.tsx  a crash shows a recoverable screen, never a blank window
 ```
 
 The readers are code-split. epub.js and pdf.js (~800 KB) load only when a book is opened, so the library view starts with ~250 KB of JS.

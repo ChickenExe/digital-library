@@ -27,7 +27,7 @@ export function TonightDeck({ readingNow, nextSet }: Props) {
       {/* 4.1 Reading now */}
       <article
         className={`${styles.card} ${styles.c1}`}
-        onClick={() => (readingNow ? openBook(readingNow.id) : navigate("discover"))}
+        onClick={(e) => (readingNow ? openBook(readingNow.id, e.currentTarget) : navigate("discover"))}
       >
         <div className={`${styles.row} mono`}>
           <span>4.1 — {readingNow ? "Reading now" : "Start reading"}</span>

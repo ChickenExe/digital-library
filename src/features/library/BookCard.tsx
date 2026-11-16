@@ -21,7 +21,11 @@ export function BookCard({ book }: { book: Book }) {
         {progress > 0 && !finished && <i className={styles.reading} />}
         {book.favorite && <span className={styles.fav}>♥</span>}
       </div>
-      <button className={styles.coverButton} onClick={() => openBook(book.id)} title={`Open “${book.title}”`}>
+      <button
+        className={styles.coverButton}
+        onClick={(e) => openBook(book.id, e.currentTarget)}
+        aria-label={`Open “${book.title}”`}
+      >
         <Cover book={book} />
         {finished && <span className={`${styles.stamp} mono`}>Finished</span>}
       </button>

@@ -1,5 +1,8 @@
 import type { Book } from "../../bindings/Book";
 import type { CollectionSet } from "../../bindings/CollectionSet";
+import { CountUp } from "../../components/motion/CountUp";
+import { MaskNumber } from "../../components/motion/MaskNumber";
+import { Scramble } from "../../components/motion/Scramble";
 import { coverUrl } from "../../lib/api";
 import { hueFor, volumeLabel } from "../../lib/format";
 import { useDiscover } from "../../store/discover";
@@ -19,14 +22,14 @@ export function HomeView() {
       <section className={styles.left}>
         <div className="section-label mono">
           <span>
-            <b>2.1</b> — Your collection
+            <b>2.1</b> — <Scramble text="Your collection" />
           </span>
           <span>{stats.total === 1 ? "1 volume" : `${stats.total} volumes`}</span>
         </div>
 
         <div className={styles.hero}>
           <BigNumber value={stats.total} />
-          <div className={styles.tag}>
+          <div className={`${styles.tag} rise-in`} style={{ "--rise-delay": "380ms" } as React.CSSProperties}>
             <div className={styles.dot} />
             <p>
               <strong>{stats.total === 1 ? "Volume collected." : "Volumes collected."}</strong>{" "}
@@ -35,35 +38,38 @@ export function HomeView() {
           </div>
         </div>
 
-        <div className={styles.metrics}>
-          <Metric label="Authors" value={stats.authors} />
-          <Metric label="Reading" value={stats.reading} />
-          <Metric label="Finished" value={stats.finished} />
-          <Metric label="Favorites" value={stats.favorites} />
+        <div
+          className={`${styles.metrics} draw-rule`}
+          style={{ "--rule-color": "var(--color-ink)", "--rule-delay": "120ms" } as React.CSSProperties}
+        >
+          <Metric label="Authors" value={stats.authors} i={0} />
+          <Metric label="Reading" value={stats.reading} i={1} />
+          <Metric label="Finished" value={stats.finished} i={2} />
+          <Metric label="Favorites" value={stats.favorites} i={3} />
         </div>
 
-        <div className={`section-label mono ${styles.rule}`}>
+        <div className={`section-label mono ${styles.rule} draw-rule`} style={{ "--rule-delay": "220ms" } as React.CSSProperties}>
           <span>
-            <b>2.2</b> — Index · latest volumes
+            <b>2.2</b> — <Scramble text="Index · latest volumes" delay={150} />
           </span>
           <button className="mono" onClick={() => navigate("collection")}>
             View all {stats.total} →
           </button>
         </div>
         <div className={styles.strip}>
-          {data?.latest.map((b) => <Volume key={b.id} book={b} />)}
+          {data?.latest.map((b, i) => <Volume key={b.id} book={b} i={i} />)}
           {data && data.latest.length === 0 && (
             <p className={styles.empty}>Nothing here yet. Grab a free classic from Discover. It becomes No. 001.</p>
           )}
         </div>
 
-        <div className={`section-label mono ${styles.rule}`}>
+        <div className={`section-label mono ${styles.rule} draw-rule`} style={{ "--rule-delay": "320ms" } as React.CSSProperties}>
           <span>
-            <b>2.3</b> — Sets
+            <b>2.3</b> — <Scramble text="Sets" delay={260} />
           </span>
           <span>Collect them all</span>
         </div>
-        <div className={styles.sets}>{data?.sets.map((s) => <SetRow key={s.id} set={s} />)}</div>
+        <div className={styles.sets}>{data?.sets.map((s, i) => <SetRow key={s.id} set={s} row={i} />)}</div>
       </section>
 
       <section className={styles.right}>
@@ -81,32 +87,34 @@ export function HomeView() {
 
 function BigNumber({ value }: { value: number }) {
   const label = volumeLabel(value);
-  const zeros = label.length - String(value).length;
   return (
-    <div className={styles.big} aria-label={`${value} volumes`}>
-      {[...label].map((d, i) => (
-        <span key={i} className={i < zeros ? styles.ghost : ""}>
-          {d}
-        </span>
-      ))}
+    <div className={styles.big}>
+      <MaskNumber value={label} ghostBefore={label.length - String(value).length} ghostClassName={styles.ghost} delay={0.05} />
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value, i }: { label: string; value: number; i: number }) {
   return (
-    <div className={styles.metric}>
+    <div className={`${styles.metric} rise-in`} style={{ "--i": i, "--rise-delay": "200ms" } as React.CSSProperties}>
       <div className="mono">{label}</div>
-      <div className={styles.metricValue}>{value.toLocaleString()}</div>
+      <div className={styles.metricValue}>
+        <CountUp value={value} delay={0.25 + i * 0.06} />
+      </div>
     </div>
   );
 }
 
-function Volume({ book }: { book: Book }) {
+function Volume({ book, i }: { book: Book; i: number }) {
   const openBook = useLibrary((s) => s.openBook);
   const reading = book.progress && book.progress.percent < 0.98;
   return (
-    <button className={styles.vol} onClick={() => openBook(book.id)} title={book.title}>
+    <button
+      className={`${styles.vol} rise-in`}
+      style={{ "--i": i * 2, "--rise-delay": "300ms" } as React.CSSProperties}
+      onClick={(e) => openBook(book.id, e.currentTarget.querySelector("img, [data-cover]"))}
+      aria-label={`Open “${book.title}”`}
+    >
       <div className={`${styles.no} mono`}>
         No.{volumeLabel(book.volume)}
         {reading && <i />}
@@ -124,13 +132,13 @@ function SmallCover({ book }: { book: Book }) {
   }
   const hue = hueFor(book.id);
   return (
-    <div className={`${styles.cover} ${styles.ph}`} style={{ background: `hsl(${hue} 18% 28%)` }}>
+    <div data-cover className={`${styles.cover} ${styles.ph}`} style={{ background: `hsl(${hue} 18% 28%)` }}>
       {book.title}
     </div>
   );
 }
 
-function SetRow({ set }: { set: CollectionSet }) {
+function SetRow({ set, row }: { set: CollectionSet; row: number }) {
   const openListing = useDiscover((s) => s.openListing);
   const openBook = useLibrary((s) => s.openBook);
   const nextIndex = set.items.findIndex((i) => !i.ownedBookId);
@@ -148,7 +156,8 @@ function SetRow({ set }: { set: CollectionSet }) {
             key={item.id}
             title={item.ownedBookId ? `${item.title} · in your collection` : `${item.title} · get it free`}
             className={`${styles.sq} ${item.ownedBookId ? styles.got : i === nextIndex ? styles.next : ""}`}
-            onClick={() => (item.ownedBookId ? openBook(item.ownedBookId) : void openListing(item))}
+            style={{ "--i": row * 3 + i } as React.CSSProperties}
+            onClick={(e) => (item.ownedBookId ? openBook(item.ownedBookId, e.currentTarget) : void openListing(item))}
           />
         ))}
       </div>

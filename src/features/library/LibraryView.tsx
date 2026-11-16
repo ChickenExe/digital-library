@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { BookFormat } from "../../bindings/BookFormat";
 import type { Shelf } from "../../bindings/Shelf";
 import type { SortKey } from "../../bindings/SortKey";
 import { debounce, volumeLabel } from "../../lib/format";
+import { EASE, SPRING } from "../../lib/motion";
+import { MaskNumber } from "../../components/motion/MaskNumber";
+import { Scramble } from "../../components/motion/Scramble";
 import { useLibrary } from "../../store/library";
 import { BookCard } from "./BookCard";
 import styles from "./LibraryView.module.css";
@@ -44,11 +48,11 @@ export function LibraryView() {
           <div>
             <div className="section-label mono">
               <span>
-                <b>3.1</b> — Collection
+                <b>3.1</b> — <Scramble text="Collection" />
               </span>
             </div>
             <h1 className={styles.title}>
-              {volumeLabel(stats.total)} <span>volumes</span>
+              <MaskNumber value={volumeLabel(stats.total)} /> <span className={`${styles.unit} rise-in`}>volumes</span>
             </h1>
           </div>
           <div className={styles.controls}>
@@ -83,9 +87,12 @@ export function LibraryView() {
               className={query.shelf === s.id ? styles.on : ""}
               onClick={() => setQuery({ shelf: s.id })}
             >
-              <b>{String(i + 1).padStart(2, "0")}</b>
-              {s.label}
-              <em>{s.count(stats)}</em>
+              {query.shelf === s.id && <motion.span layoutId="shelf-pill" className={styles.pill} transition={SPRING.pill} />}
+              <span className={styles.tabLabel}>
+                <b>{String(i + 1).padStart(2, "0")}</b>
+                {s.label}
+                <em>{s.count(stats)}</em>
+              </span>
             </button>
           ))}
           <span className={styles.divider} />
@@ -95,7 +102,8 @@ export function LibraryView() {
               className={query.format === f.id ? styles.on : ""}
               onClick={() => setQuery({ format: f.id })}
             >
-              {f.label}
+              {query.format === f.id && <motion.span layoutId="format-pill" className={styles.pill} transition={SPRING.pill} />}
+              <span className={styles.tabLabel}>{f.label}</span>
             </button>
           ))}
         </div>
@@ -104,11 +112,23 @@ export function LibraryView() {
       {loaded && books.length === 0 ? (
         <EmptyState filtered={stats.total > 0 || !!query.search} />
       ) : (
-        <div className={styles.grid}>
-          {books.map((b) => (
-            <BookCard key={b.id} book={b} />
-          ))}
-        </div>
+        <motion.div className={styles.grid} layoutScroll>
+          {/* Filtering and sorting re-flow the grid: survivors glide, leavers shrink away. */}
+          <AnimatePresence mode="popLayout" initial={true}>
+            {books.map((b, i) => (
+              <motion.div
+                key={b.id}
+                layout="position"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE.out, delay: Math.min(i, 18) * 0.025 } }}
+                exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.18, ease: EASE.in } }}
+                transition={SPRING.panel}
+              >
+                <BookCard book={b} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
     </main>
   );

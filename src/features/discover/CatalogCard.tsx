@@ -4,11 +4,26 @@ import { useDiscover } from "../../store/discover";
 import { CatalogCover } from "./CatalogCover";
 import styles from "./CatalogCard.module.css";
 
-/** A catalog listing. `label` shows above the cover (e.g. a "#01" rank). */
-export function CatalogCard({ entry, label }: { entry: CatalogEntry; label?: string }) {
+type Props = {
+  entry: CatalogEntry;
+  /** Shown above the cover (e.g. a "#01" rank). */
+  label?: string;
+  /** Unique per on-screen instance; lets the cover morph into the listing sheet. */
+  morphKey?: string;
+};
+
+/** A catalog listing card. */
+export function CatalogCard({ entry, label, morphKey }: Props) {
   const openListing = useDiscover((s) => s.openListing);
+  const lifted = useDiscover((s) => !!morphKey && s.morphing === morphKey);
   return (
-    <button className={styles.card} onClick={() => void openListing(entry)} title={entry.title}>
+    <button
+      className={styles.card}
+      onClick={(e) =>
+        void openListing(entry, morphKey ? { key: morphKey, el: e.currentTarget.querySelector("[data-cover]") } : undefined)
+      }
+      title={entry.title}
+    >
       {(label || entry.ownedBookId) && (
         <div className={`${styles.label} mono`}>
           <span>{label}</span>
@@ -16,7 +31,10 @@ export function CatalogCard({ entry, label }: { entry: CatalogEntry; label?: str
         </div>
       )}
       <div className={styles.coverWrap}>
-        <CatalogCover entry={entry} />
+        {/* While the cover is "lifted" into the listing sheet, leave its slot empty. */}
+        <div style={{ visibility: lifted ? "hidden" : undefined }}>
+          <CatalogCover entry={entry} />
+        </div>
       </div>
       <div className={styles.title}>{entry.title}</div>
       <div className={styles.author}>{authorLine(entry)}</div>
