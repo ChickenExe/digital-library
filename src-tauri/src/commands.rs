@@ -124,6 +124,20 @@ pub fn mark_cover_missing(state: State<'_, AppState>, id: String) -> AppResult<(
     books::set_cover(&*state.conn()?, &id, None)
 }
 
+/// The window material behind the UI: "mica" on Windows 11 (the frontend then
+/// lets it show through), otherwise "none" (the UI stays fully opaque).
+#[tauri::command]
+pub fn window_material() -> &'static str {
+    #[cfg(windows)]
+    {
+        // Mica arrived in Windows 11 (build 22000); on Windows 10 the effect is a no-op.
+        if windows_version::OsVersion::current().build >= 22000 {
+            return "mica";
+        }
+    }
+    "none"
+}
+
 /// Cached epub.js location map for a book, if one was saved at this granularity.
 #[tauri::command(async)]
 pub fn get_locations(state: State<'_, AppState>, id: String, chars_per: u32) -> AppResult<Option<String>> {

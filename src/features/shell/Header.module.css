@@ -40,3 +40,10 @@
 .nav .on b { opacity: 0.6; }
 .tools { justify-self: end; display: flex; gap: var(--space-2); }
 .kbd { opacity: 0.5; }
+
+/* Windows: caption buttons sit in the top-right corner; keep the tools clear of them. */
+.caption { position: absolute; top: 0; right: 0; }
+:root[data-platform="windows"] .header { padding-right: calc(var(--space-12) + 138px); }
+/* macOS: leave room for the traffic lights overlaid at the top left. */
+:root[data-platform="macos"] .header { padding-left: 88px; }
+.header { position: relative; }

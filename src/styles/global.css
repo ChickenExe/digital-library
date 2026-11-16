@@ -59,7 +59,7 @@ button:disabled { cursor: default; opacity: 0.55; }
 .section-label b { color: var(--color-text); font-weight: 500; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(16, 16, 16, 0.22); border-radius: 5px; border: 3px solid var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 5px; border: 3px solid var(--color-bg); }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ---------- motion utilities ---------- */
@@ -91,3 +91,8 @@ button:disabled { cursor: default; opacity: 0.55; }
     transition-duration: 1ms !important;
   }
 }
+
+/* ---------- window material ---------- */
+/* On Windows 11 the frameless window sits on Mica; let a hint of it through. */
+:root[data-material="mica"] body { background: color-mix(in srgb, var(--color-bg) 84%, transparent); }
+:root[data-material="mica"] header[data-tauri-drag-region] { background: transparent; }

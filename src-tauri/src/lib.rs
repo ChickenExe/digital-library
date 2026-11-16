@@ -76,6 +76,7 @@ pub fn run() {
             commands::save_progress,
             commands::save_cover,
             commands::mark_cover_missing,
+            commands::window_material,
             commands::get_locations,
             commands::save_locations,
             catalog::commands::catalog_status,

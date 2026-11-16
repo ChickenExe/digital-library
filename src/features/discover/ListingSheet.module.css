@@ -1,5 +1,5 @@
 /* Three stacked layers: scrim, sliding paper panel, and the (unmoving) content. */
-.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(16, 16, 16, 0.32); }
+.scrim { position: fixed; inset: 0; z-index: 40; background: var(--color-scrim); }
 .panel, .sheet { position: fixed; top: 0; right: 0; bottom: 0; width: min(600px, 92vw); }
 .panel { z-index: 41; background: var(--color-paper); box-shadow: -30px 0 60px -20px rgba(0, 0, 0, 0.3); }
 .sheet {

@@ -50,10 +50,48 @@
   --color-hover: rgba(16, 16, 16, 0.06);
   --color-focus: #ff4d1f;
 
+  --color-scrollbar: rgba(16, 16, 16, 0.22);
+  --color-scrim: rgba(16, 16, 16, 0.32);
+
   --shadow-card: 0 40px 60px -24px rgba(0, 0, 0, 0.35);
   --shadow-cover: 0 1px 2px rgba(0, 0, 0, 0.15), 0 8px 18px -6px rgba(0, 0, 0, 0.25);
   --shadow-cover-hover: 0 2px 4px rgba(0, 0, 0, 0.18), 0 18px 30px -8px rgba(0, 0, 0, 0.35);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/*
+ * Dark: the system inverts rather than merely darkens. "Ink" (the high-contrast
+ * fill behind pills and the black card) becomes near-white, "paper" becomes the
+ * raised dark surface, and red is nudged brighter for contrast.
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #121211;
+  --color-paper: #1d1d1b;
+  --color-ink: #f0efea;
+  --color-ink-2: #d7d6d0;
+  --color-red: #ff5b30;
+  --color-red-ink: #ff7752;
+  --color-text: #eeede8;
+  --color-text-muted: #9d9c96;
+  --color-text-faint: #6b6a65;
+  --color-rule: rgba(255, 255, 255, 0.12);
+  --color-rule-strong: #eeede8;
+  --color-hover: rgba(255, 255, 255, 0.07);
+  --color-focus: #ff5b30;
+  --color-scrollbar: rgba(255, 255, 255, 0.2);
+  --color-scrim: rgba(0, 0, 0, 0.55);
+
+  --shadow-card: 0 40px 60px -24px rgba(0, 0, 0, 0.75);
+  --shadow-cover: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 18px -6px rgba(0, 0, 0, 0.7);
+  --shadow-cover-hover: 0 2px 4px rgba(0, 0, 0, 0.55), 0 18px 30px -8px rgba(0, 0, 0, 0.8);
+}
+
+/* Theme switches cross-fade colours (only while switching, so it costs nothing otherwise). */
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+  transition: background-color 320ms ease, color 320ms ease, border-color 320ms ease, fill 320ms ease !important;
 }

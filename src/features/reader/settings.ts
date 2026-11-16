@@ -111,7 +111,10 @@ export function epubCss(s: ReaderSettings): string {
   const t = THEMES[s.theme];
   const font = FONTS[s.font];
   const enforceFont = s.font !== "publisher";
+  // color-scheme must match the reader container's, or browsers paint the book's
+  // iframe with an opaque (white) backdrop.
   return `${FONT_FACES}
+:root { color-scheme: ${t.dark ? "dark" : "light"}; }
 html, body { background: transparent !important; }
 body {
   color: ${t.text} !important;

@@ -1,0 +1,13 @@
+.controls { display: flex; height: 32px; -webkit-app-region: no-drag; }
+.controls button {
+  width: 46px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: inherit;
+  transition: background 120ms ease, color 120ms ease;
+}
+.controls button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.controls button:active { background: color-mix(in srgb, currentColor 16%, transparent); }
+.controls .close:hover { background: var(--color-red, #ff4d1f); color: #fff; }
+.controls svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1; shape-rendering: crispEdges; }

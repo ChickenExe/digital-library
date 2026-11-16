@@ -117,10 +117,38 @@ src/
 
 The readers are code-split. epub.js and pdf.js (~800 KB) load only when a book is opened, so the library view starts with ~250 KB of JS.
 
+## Performance and memory
+
+Benchmarked with `scripts/make-bench-library.py` (600 EPUBs, each with a 1000×1500 cover). Figures are the WebKit content process RSS on Linux, with compositing off so they're comparable across builds.
+
+| Scenario | Before | After |
+|---|---|---|
+| Home | 238 MB | 189 MB |
+| Collection opened | 420 MB | 212 MB |
+| After scrolling the collection | 505 MB | 296 MB |
+| Initial JavaScript | 462 kB | 347 kB |
+
+What does it:
+
+- **Thumbnails.** Grids load 240 px or 360 px JPEG thumbnails, chosen by screen density, instead of original covers. A 1500×2300 cover is about 14 MB decoded; a thumbnail is about 0.2–0.5 MB. Thumbnails are made at import, or lazily for older libraries, one at a time to avoid allocation spikes.
+- **Windowed grids** (`components/VirtualGrid.tsx`). Large collections (over 150 books) and Discover's infinite results keep only nearby rows in the DOM.
+- **Range-loaded PDFs.** pdf.js asks for byte ranges through `PDFDataRangeTransport`, and `book://` answers with `206 Partial Content`. Large PDFs open instantly and only the pages you view are read.
+- **Cached EPUB location maps** (`book_locations`). Paging and percentages need a map of the whole book; it's computed once, then reused.
+- **Lean queries.** Home asks for 7 books, not the whole library, and grid queries skip long descriptions.
+- **Flat-memory catalog sync.** The 78k-row catalog is decompressed, parsed and inserted as a stream.
+- **Lazy Motion.** The animation engine loads after first paint. `content-visibility` skips off-screen Discover rows.
+
+## Theme and window chrome
+
+- **Light / Dark / System.** Set via `data-theme` on `<html>` (`lib/theme.ts`); dark mode inverts the palette's roles rather than just darkening it. The native window theme follows, so Mica tints to match. The reader keeps its own palette, and its `color-scheme` is kept in step with the book iframe's, otherwise browsers paint the iframe opaque.
+- **Windows** (`tauri.windows.conf.json`). Frameless, with the header as title bar (`data-tauri-drag-region`) and Index-styled caption buttons. On Windows 11 (build ≥ 22000, checked in Rust) the background goes slightly translucent over Mica; on Windows 10 it stays opaque.
+- **macOS** (`tauri.macos.conf.json`): native traffic lights overlaid on the header.
+- **Linux**: native frame.
+
 ## Security posture
 
 - Strict CSP: no remote origins, no inline scripts, and EPUB scripts are disabled (`allowScriptedContent: false`).
-- Capabilities grant only `core:default`, `dialog:allow-open`, `dialog:allow-ask`, `log:default` and `opener:allow-open-url`. There is no general filesystem or shell access from the UI.
+- Capabilities grant only `core:default`, the window controls the custom title bar needs, `dialog:allow-open`, `dialog:allow-ask`, `log:default` and `opener:allow-open-url`. There is no general filesystem or shell access from the UI.
 - All network access happens in Rust. Listing ids are validated before URLs are built, downloads are size-capped, and the User-Agent identifies the app, never the user.
 - Stored file names are validated before joining paths, so path traversal is rejected. Zip entries are size-capped when reading EPUBs, to defuse zip bombs.
 

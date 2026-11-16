@@ -6,6 +6,7 @@ import { authorLine, debounce } from "../../lib/format";
 import { EASE } from "../../lib/motion";
 import { useLibrary, type Origin } from "../../store/library";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
+import { WindowControls } from "../shell/WindowControls";
 import { THEMES, useReaderSettings } from "./settings";
 import styles from "./ReaderView.module.css";
 
@@ -123,11 +124,14 @@ export function ReaderView({ bookId, origin }: { bookId: string; origin: Origin 
           "--r-text": theme.text,
           "--r-muted": theme.muted,
           "--r-accent": theme.accent,
+          // The reader's own palette decides light/dark, independent of the app theme
+          // (and it must match the book iframe's, see settings.ts).
+          colorScheme: theme.dark ? "dark" : "light",
         } as React.CSSProperties
       }
       onMouseMove={poke}
     >
-      <header className={`${styles.bar} ${visible ? "" : styles.hidden}`}>
+      <header className={`${styles.bar} ${visible ? "" : styles.hidden}`} data-tauri-drag-region>
         <button className={styles.barButton} onClick={closeReader}>
           ← Back
         </button>
@@ -142,6 +146,7 @@ export function ReaderView({ bookId, origin }: { bookId: string; origin: Origin 
         >
           Aa
         </button>
+        <WindowControls className={styles.caption} />
       </header>
 
       <AnimatePresence>

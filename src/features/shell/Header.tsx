@@ -3,6 +3,8 @@ import { SPRING } from "../../lib/motion";
 import type { Section } from "../../store/library";
 import { useLibrary } from "../../store/library";
 import { useDiscover } from "../../store/discover";
+import { ThemeToggle } from "./ThemeToggle";
+import { WindowControls } from "./WindowControls";
 import styles from "./Header.module.css";
 
 const NAV: { id: Section; label: string }[] = [
@@ -22,7 +24,9 @@ export function Header() {
   const setBrowse = useDiscover((s) => s.setBrowse);
 
   return (
-    <header className={styles.header}>
+    // The header doubles as the window's title bar: its empty space drags the
+    // window (double-click maximizes) wherever the native frame is hidden.
+    <header className={styles.header} data-tauri-drag-region>
       <button className={styles.logo} onClick={() => navigate("home")}>
         FOLIO<i />
       </button>
@@ -45,6 +49,7 @@ export function Header() {
         ))}
       </nav>
       <div className={styles.tools}>
+        <ThemeToggle />
         <button className="btn" disabled={!!importing} onClick={() => void pickAndImport()}>
           + Add files
         </button>
@@ -58,6 +63,7 @@ export function Header() {
           Search <span className={styles.kbd}>{IS_MAC ? "⌘K" : "Ctrl K"}</span>
         </button>
       </div>
+      <WindowControls className={styles.caption} />
     </header>
   );
 }

@@ -59,3 +59,8 @@
 .dim { opacity: 0.55; }
 .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; }
 .progress i { display: block; height: 100%; background: var(--r-accent); opacity: 0.55; transition: width 300ms ease; }
+
+/* Window chrome while reading (frameless Windows / macOS traffic lights). */
+.caption { position: absolute; top: 0; right: 0; }
+:root[data-platform="windows"] .bar { padding-right: calc(var(--space-6) + 138px); }
+:root[data-platform="macos"] .bar { padding-left: 88px; }

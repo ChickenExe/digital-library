@@ -957,6 +957,7 @@ dependencies = [
  "ts-rs",
  "uuid",
  "walkdir",
+ "windows-version",
  "zip",
 ]
 

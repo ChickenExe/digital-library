@@ -11,6 +11,9 @@ React/TypeScript UI), targeting **Windows** first.
 
 - **Home:** your collection as identity, with a giant volume count, stats, an index of numbered volumes,
   **sets** to complete (the Austen Six, the Holmes canon…) and a "Tonight" card deck
+- **Light, dark and system themes**, and on Windows 11 a frameless window on Mica with Index-styled controls
+- **Fast with big libraries:** cover thumbnails, windowed grids and range-loaded PDFs (see the benchmarks in
+  [Architecture](docs/ARCHITECTURE.md#performance-and-memory))
 - **Reader:** calm and easy on the eyes, with Paper, Sepia, Dusk and Night themes, the Literata and
   Atkinson Hyperlegible typefaces, size, spacing, line-length and pages/scroll controls, chapter names and time left
 
