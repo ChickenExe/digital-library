@@ -51,7 +51,8 @@ const SELECT_BOOK: &str = "
            b.added_at, p.locator, p.percent, p.updated_at,
            (SELECT json_group_array(name) FROM (
                 SELECT a.name FROM book_authors ba JOIN authors a ON a.id = ba.author_id
-                WHERE ba.book_id = b.id ORDER BY ba.position)) AS authors
+                WHERE ba.book_id = b.id ORDER BY ba.position)) AS authors,
+           b.volume_no
     FROM books b
     LEFT JOIN reading_progress p ON p.book_id = b.id";
 
@@ -84,6 +85,7 @@ fn map_book(row: &Row<'_>) -> rusqlite::Result<Book> {
             None => None,
         },
         authors: serde_json::from_str(&authors_json).unwrap_or_default(),
+        volume: row.get::<_, Option<u32>>(18)?.unwrap_or_default(),
     })
 }
 
@@ -238,13 +240,19 @@ pub fn cover_file(conn: &Connection, id: &str) -> AppResult<Option<String>> {
 pub fn insert(conn: &mut Connection, book: &NewBook) -> AppResult<()> {
     let tx = conn.transaction()?;
     let now = now_ms();
+    // Collector's numbers come from a counter (not MAX+1) so they're never reused after a delete.
+    let volume_no: i64 = tx.query_row(
+        "UPDATE app_counters SET value = value + 1 WHERE name = 'volume_no' RETURNING value",
+        [],
+        |r| r.get(0),
+    )?;
     tx.execute(
         "INSERT INTO books (id, title, sort_title, description, publisher, language, published,
                             isbn, format, file_name, original_name, file_size, file_hash,
                             page_count, cover_file, cover_state, cover_updated_at, added_at, updated_at,
-                            source_provider, source_id)
+                            source_provider, source_id, volume_no)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?17, ?17,
-                 ?18, ?19)",
+                 ?18, ?19, ?20)",
         params![
             book.id,
             book.title,
@@ -265,6 +273,7 @@ pub fn insert(conn: &mut Connection, book: &NewBook) -> AppResult<()> {
             now,
             book.origin.as_ref().map(|o| &o.provider),
             book.origin.as_ref().map(|o| &o.id),
+            volume_no,
         ],
     )?;
     set_authors(&tx, &book.id, &book.authors)?;
@@ -356,7 +365,8 @@ pub fn stats(conn: &Connection) -> AppResult<LibraryStats> {
             "SELECT (SELECT COUNT(*) FROM books),
                     (SELECT COUNT(*) FROM reading_progress WHERE percent < {FINISHED_AT}),
                     (SELECT COUNT(*) FROM books WHERE favorite = 1),
-                    (SELECT COUNT(*) FROM reading_progress WHERE percent >= {FINISHED_AT})"
+                    (SELECT COUNT(*) FROM reading_progress WHERE percent >= {FINISHED_AT}),
+                    (SELECT COUNT(DISTINCT author_id) FROM book_authors)"
         ),
         [],
         |r| {
@@ -365,6 +375,7 @@ pub fn stats(conn: &Connection) -> AppResult<LibraryStats> {
                 reading: r.get(1)?,
                 favorites: r.get(2)?,
                 finished: r.get(3)?,
+                authors: r.get(4)?,
             })
         },
     )?)
@@ -430,7 +441,8 @@ mod tests {
         save_progress(&conn, "a", "epubcfi(/6/4)", 0.5).unwrap();
         set_favorite(&conn, "b", true).unwrap();
         let s = stats(&conn).unwrap();
-        assert_eq!((s.total, s.reading, s.favorites, s.finished), (2, 1, 1, 0));
+        assert_eq!((s.total, s.reading, s.favorites, s.finished, s.authors), (2, 1, 1, 0, 2));
+        assert_eq!((get(&conn, "a").unwrap().volume, get(&conn, "b").unwrap().volume), (1, 2));
         let reading = list(&conn, &BookQuery { shelf: Shelf::Reading, ..Default::default() }).unwrap();
         assert_eq!(reading[0].progress.as_ref().unwrap().percent, 0.5);
 
@@ -443,5 +455,9 @@ mod tests {
         assert!(get(&conn, "b").is_err());
         let authors: i64 = conn.query_row("SELECT COUNT(*) FROM authors", [], |r| r.get(0)).unwrap();
         assert_eq!(authors, 1, "orphaned authors are cleaned up");
+
+        // Numbers are never reused after a delete.
+        insert(&mut conn, &sample("c", "Emma", &["Jane Austen"], "h3")).unwrap();
+        assert_eq!(get(&conn, "c").unwrap().volume, 3);
     }
 }

@@ -81,6 +81,7 @@ pub fn run() {
             catalog::commands::catalog_search,
             catalog::commands::catalog_detail,
             catalog::commands::catalog_acquire,
+            catalog::sets::collection_sets,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Digital Library");

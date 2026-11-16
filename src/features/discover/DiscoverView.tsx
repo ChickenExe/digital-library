@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CatalogRow } from "../../bindings/CatalogRow";
-import { debounce } from "../../lib/format";
+import { debounce, pad2 } from "../../lib/format";
 import { useDiscover } from "../../store/discover";
 import { CatalogCard } from "./CatalogCard";
-import { ListingSheet } from "./ListingSheet";
 import { Spotlight } from "./Spotlight";
 import styles from "./DiscoverView.module.css";
 
@@ -18,13 +17,13 @@ const LANGUAGES: { code: string | null; label: string }[] = [
   { code: null, label: "All languages" },
 ];
 
+/** 02 — Discover: the free catalog, front page and search. */
 export function DiscoverView() {
   const status = useDiscover((s) => s.status);
   const rows = useDiscover((s) => s.rows);
   const browse = useDiscover((s) => s.browse);
-  const open = useDiscover((s) => s.open);
-
   const ready = !!status && status.entries > 0;
+
   return (
     <main className={styles.main}>
       <DiscoverToolbar />
@@ -35,15 +34,14 @@ export function DiscoverView() {
       ) : (
         <div className={styles.scroll}>
           {rows[0]?.entries[0] && <Spotlight entry={rows[0].entries[0]} />}
-          {rows.map((row) => (
-            <ShelfRow key={row.id} row={row} />
+          {rows.map((row, i) => (
+            <ShelfRow key={row.id} row={row} index={i + 1} ranked={i === 0} />
           ))}
-          <p className={styles.credit}>
-            Free public-domain books from Project Gutenberg. More stores coming soon.
+          <p className={`${styles.credit} mono`}>
+            Free public-domain books from Project Gutenberg · More stores coming soon
           </p>
         </div>
       )}
-      {open && <ListingSheet />}
     </main>
   );
 }
@@ -53,12 +51,13 @@ function DiscoverToolbar() {
   const setBrowse = useDiscover((s) => s.setBrowse);
   const language = useDiscover((s) => s.language);
   const setLanguage = useDiscover((s) => s.setLanguage);
+  const status = useDiscover((s) => s.status);
   const [text, setText] = useState(browse?.search ?? "");
   const push = useMemo(
     () =>
       debounce((v: string) => {
         const q = v.trim();
-        setBrowse(q ? { search: q, category: null, title: `Results for “${q}”` } : null);
+        setBrowse(q ? { search: q, category: null, title: `“${q}”` } : null);
       }, 200),
     [setBrowse],
   );
@@ -66,17 +65,19 @@ function DiscoverToolbar() {
     if (!browse) setText("");
   }, [browse]);
 
+  const count = status?.entries ? `${Math.floor(status.entries / 1000)},000+` : "70,000+";
   return (
     <header className={styles.toolbar}>
       {browse && (
         <button className="btn" onClick={() => setBrowse(null)}>
-          ← Discover
+          ← Front page
         </button>
       )}
       <input
-        className={styles.search}
+        data-search
+        className={`${styles.search} mono`}
         type="search"
-        placeholder="Search 70,000+ free books by title, author or subject…"
+        placeholder={`Search ${count} free books · title, author, subject`}
         value={text}
         onChange={(e) => {
           setText(e.target.value);
@@ -84,7 +85,7 @@ function DiscoverToolbar() {
         }}
       />
       <select
-        className={styles.select}
+        className={`${styles.select} mono`}
         value={language ?? ""}
         onChange={(e) => setLanguage(e.target.value || null)}
         aria-label="Language"
@@ -99,7 +100,7 @@ function DiscoverToolbar() {
   );
 }
 
-function ShelfRow({ row }: { row: CatalogRow }) {
+function ShelfRow({ row, index, ranked }: { row: CatalogRow; index: number; ranked: boolean }) {
   const setBrowse = useDiscover((s) => s.setBrowse);
   const track = useRef<HTMLDivElement>(null);
   const scroll = (dir: 1 | -1) =>
@@ -107,28 +108,30 @@ function ShelfRow({ row }: { row: CatalogRow }) {
   return (
     <section className={styles.row}>
       <div className={styles.rowHeader}>
-        <h2>{row.title}</h2>
+        <div>
+          <div className="mono" style={{ color: "var(--color-text-muted)" }}>
+            2.{index}
+          </div>
+          <h2>{row.title}</h2>
+        </div>
         <div className={styles.rowActions}>
           {row.category && (
-            <button
-              className={styles.link}
-              onClick={() => setBrowse({ search: "", category: row.category, title: row.title })}
-            >
+            <button className="btn" onClick={() => setBrowse({ search: "", category: row.category, title: row.title })}>
               See all
             </button>
           )}
           <button className={styles.arrow} onClick={() => scroll(-1)} aria-label="Scroll left">
-            ‹
+            ←
           </button>
           <button className={styles.arrow} onClick={() => scroll(1)} aria-label="Scroll right">
-            ›
+            →
           </button>
         </div>
       </div>
       <div ref={track} className={styles.track}>
-        {row.entries.map((e) => (
+        {row.entries.map((e, i) => (
           <div key={e.id} className={styles.trackItem}>
-            <CatalogCard entry={e} />
+            <CatalogCard entry={e} label={ranked ? `#${pad2(i + 1)}` : undefined} />
           </div>
         ))}
       </div>
@@ -155,8 +158,10 @@ function BrowseResults() {
   return (
     <div className={styles.scroll}>
       <div className={styles.browseHeader}>
+        <div className="mono" style={{ color: "var(--color-text-muted)" }}>
+          {total.toLocaleString()} books
+        </div>
         <h2>{browse.title}</h2>
-        <span>{total.toLocaleString()} books</span>
       </div>
       <div className={styles.grid}>
         {results.map((e) => (
@@ -173,14 +178,19 @@ function CatalogSetup() {
   const retry = () => void import("../../lib/api").then(({ api }) => api.catalogSync(true));
   return (
     <div className={styles.setup}>
-      <h2>Setting up Discover</h2>
+      <div className="mono">2.0 — Setting up Discover</div>
+      <h2>
+        {status?.phase === "error" ? "Offline" : "Indexing"}
+        <br />
+        the stacks
+      </h2>
       <p>
         {status?.phase === "error"
           ? `We couldn’t reach the catalog: ${status.message ?? "unknown error"}`
           : (status?.message ?? "Preparing the catalog of free books…")}
       </p>
       {status?.phase === "error" ? (
-        <button className="btn btn-primary" onClick={retry}>
+        <button className="btn btn-primary btn-lg" onClick={retry}>
           Try again
         </button>
       ) : (

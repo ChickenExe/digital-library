@@ -13,7 +13,7 @@ export function CatalogCover({ entry, size = "md" }: { entry: CatalogEntry; size
       {state !== "ok" && (
         <div
           className={styles.placeholder}
-          style={{ background: `linear-gradient(160deg, hsl(${hue} 22% 34%), hsl(${(hue + 30) % 360} 26% 20%))` }}
+          style={{ background: `hsl(${hue} 16% 24%)` }}
         >
           <div className={styles.title}>{entry.title}</div>
           <div className={styles.author}>{authorLine(entry)}</div>

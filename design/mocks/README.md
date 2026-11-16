@@ -1,5 +1,7 @@
 # Design directions: "reading as a collection and a community"
 
+> **Chosen: C, "Index"**, now implemented in the app. The reader deliberately departs from it with a calm, low-contrast design for long sessions.
+
 Three visual directions for the home screen. All three show the **same content and features**, so the comparison is purely about look and feel. Open the `.html` files in a browser (designed at 1440×900), or see `screens/`.
 
 | | Direction | Inspired by | Personality |

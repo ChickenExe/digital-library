@@ -12,10 +12,8 @@ import type { ImportReport } from "../bindings/ImportReport";
 import type { LibraryStats } from "../bindings/LibraryStats";
 import { api, errorMessage } from "../lib/api";
 
-export type View =
-  | { kind: "library" }
-  | { kind: "discover" }
-  | { kind: "reader"; bookId: string; returnTo: "library" | "discover" };
+export type Section = "home" | "discover" | "collection" | "circles";
+export type View = { kind: Section } | { kind: "reader"; bookId: string; returnTo: Section };
 
 type Toast = { id: number; tone: "info" | "error"; text: string };
 
@@ -37,7 +35,7 @@ type LibraryState = {
   deleteBook: (book: Book) => Promise<void>;
   openBook: (id: string) => void;
   closeReader: () => void;
-  navigate: (view: "library" | "discover") => void;
+  navigate: (view: Section) => void;
   toast: (text: string, tone?: Toast["tone"]) => void;
   dismissToast: (id: number) => void;
 };
@@ -46,10 +44,10 @@ let refreshSeq = 0;
 let toastSeq = 0;
 
 export const useLibrary = create<LibraryState>((set, get) => ({
-  view: { kind: "library" },
+  view: { kind: "home" },
   query: { shelf: "all", sort: "recent" },
   books: [],
-  stats: { total: 0, reading: 0, favorites: 0, finished: 0 },
+  stats: { total: 0, reading: 0, favorites: 0, finished: 0, authors: 0 },
   loaded: false,
   importing: null,
   toasts: [],
@@ -115,12 +113,12 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   },
 
   openBook: (id) => {
-    const from = get().view.kind;
-    set({ view: { kind: "reader", bookId: id, returnTo: from === "discover" ? "discover" : "library" } });
+    const view = get().view;
+    set({ view: { kind: "reader", bookId: id, returnTo: view.kind === "reader" ? view.returnTo : view.kind } });
   },
   closeReader: () => {
     const view = get().view;
-    set({ view: { kind: view.kind === "reader" ? view.returnTo : "library" } });
+    set({ view: { kind: view.kind === "reader" ? view.returnTo : "home" } });
     void get().refresh();
   },
   navigate: (kind) => set({ view: { kind } }),

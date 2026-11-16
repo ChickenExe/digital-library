@@ -3,9 +3,12 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { events } from "./lib/api";
 import { useLibrary } from "./store/library";
 import { useDiscover } from "./store/discover";
-import { Sidebar } from "./features/library/Sidebar";
+import { Header } from "./features/shell/Header";
+import { HomeView } from "./features/home/HomeView";
 import { LibraryView } from "./features/library/LibraryView";
 import { DiscoverView } from "./features/discover/DiscoverView";
+import { ListingSheet } from "./features/discover/ListingSheet";
+import { CirclesView } from "./features/circles/CirclesView";
 import { ReaderView } from "./features/reader/ReaderView";
 import { Toasts } from "./features/library/Toasts";
 import { DropOverlay, useDragState } from "./features/library/DropOverlay";
@@ -13,6 +16,7 @@ import styles from "./App.module.css";
 
 export default function App() {
   const view = useLibrary((s) => s.view);
+  const listingOpen = useDiscover((s) => !!s.open);
   const dragging = useDragState();
 
   useEffect(() => {
@@ -29,7 +33,19 @@ export default function App() {
         if (e.payload.type === "drop") void useLibrary.getState().importPaths(e.payload.paths);
       }),
     ];
-    return () => unlisten.forEach((p) => p.then((off) => off()));
+    // Ctrl/⌘+K jumps to search.
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        useLibrary.getState().navigate("discover");
+        requestAnimationFrame(() => document.querySelector<HTMLInputElement>("[data-search]")?.focus());
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      unlisten.forEach((p) => p.then((off) => off()));
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   if (view.kind === "reader") {
@@ -43,8 +59,12 @@ export default function App() {
 
   return (
     <div className={styles.shell}>
-      <Sidebar />
-      {view.kind === "discover" ? <DiscoverView /> : <LibraryView />}
+      <Header />
+      {view.kind === "home" && <HomeView />}
+      {view.kind === "discover" && <DiscoverView />}
+      {view.kind === "collection" && <LibraryView />}
+      {view.kind === "circles" && <CirclesView />}
+      {listingOpen && <ListingSheet />}
       {dragging && <DropOverlay />}
       <Toasts />
     </div>

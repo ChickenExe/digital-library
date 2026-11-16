@@ -1,0 +1,55 @@
+.scrim { position: absolute; inset: 0; z-index: 25; }
+.panel {
+  position: absolute;
+  top: 60px;
+  right: var(--space-6);
+  z-index: 30;
+  width: 340px;
+  padding: var(--space-4) var(--space-6) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--r-bg) 92%, var(--r-text));
+  color: var(--r-text);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.35), 0 0 0 1px color-mix(in srgb, var(--r-text) 10%, transparent);
+  animation: pop 200ms var(--ease-out);
+}
+@keyframes pop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+.section { margin-top: var(--space-4); }
+.label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--r-muted); margin-bottom: var(--space-2); }
+
+.themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.theme {
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12) inset;
+}
+.sample { font-family: "Reader Literata", Georgia, serif; font-size: 20px; }
+.themeName { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; }
+.theme.on { box-shadow: 0 0 0 2px var(--r-accent); }
+
+.fonts { display: grid; gap: 6px; }
+.option {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-align: left;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--r-text) 12%, transparent) inset;
+}
+.option.on { box-shadow: 0 0 0 2px var(--r-accent) inset; }
+.fontSample { font-size: 17px; }
+.note { font-size: 11px; color: var(--r-muted); }
+
+.stepper { display: flex; align-items: center; justify-content: space-between; border-radius: 10px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--r-text) 12%, transparent) inset; }
+.stepper button { width: 64px; height: 40px; font-size: 15px; }
+.stepper button:hover { color: var(--r-accent); }
+.stepper span { font-family: var(--font-mono); font-size: 12px; color: var(--r-muted); }
+
+.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: 10px; padding: 3px; background: color-mix(in srgb, var(--r-text) 7%, transparent); }
+.segmented button { height: 32px; border-radius: 8px; font-size: 12.5px; color: var(--r-muted); }
+.segmented .on { background: var(--r-bg); color: var(--r-text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }

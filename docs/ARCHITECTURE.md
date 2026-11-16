@@ -47,7 +47,10 @@ the pixels. They talk through a small, typed command API.
 | **`ts-rs` generated types** | `src/bindings/*.ts` are generated from the Rust structs, so the two sides can't silently drift apart. |
 | **Local catalog index (`catalog.db`)** | Gutenberg's ~78k works are mirrored from its official catalog feed. Browsing and search are then instant and work offline, with no dependency on a slow third-party API. Details and covers are fetched lazily and cached. It's a separate database because it's a cache: deleting it costs a re-sync, never user data. |
 | **Covers proxied through Rust (`catalog-cover://`)** | Covers are cached on disk, at most 6 fetches run at once (polite to the provider), the CSP stays free of remote origins, and the webview can't request arbitrary URLs (only known provider + id). |
-| **Design tokens (`styles/tokens.css`)** | Every color, spacing value, radius and shadow is a CSS variable. The upcoming redesign is mostly a token rewrite plus component CSS. Logic doesn't change. |
+| **Design tokens (`styles/tokens.css`)** | Every color, spacing value, radius and shadow is a CSS variable. The app uses direction C, "Index" (see `design/mocks/`): Archivo + JetBrains Mono, red-orange on ink and paper, numbered sections. |
+| **A separate, calm reader** | The library is loud; the reader is deliberately quiet. Its four themes avoid pure black on white, and Night uses soft text against glare. Typefaces are Literata and Atkinson Hyperlegible, with a 60–75 character measure, ragged right and hyphenation. Controls auto-hide. Settings live in `features/reader/settings.ts` and are injected into the EPUB iframe as a stylesheet, or applied as a filter to PDF pages. |
+| **Permanent volume numbers** | Each import takes the next number from a counter (migration 0003), so "No. 042" never changes, even after deletions. |
+| **Sets** | Curated groups (an author's novels, a canon) defined in `catalog/sets.rs` by Gutenberg id. Ownership comes from the library's `source_*` columns, so getting a book from Discover fills its slot. |
 
 ## Data model
 
@@ -99,7 +102,11 @@ src/
   features/library/  sidebar, toolbar, grid, cards, drop overlay, toasts
   features/reader/   ReaderView shell + lazily loaded EpubReader / PdfReader
   features/covers/   background PDF cover generation queue
+  features/shell/    numbered header navigation
+  features/home/     Home: collection number, stats, index strip, sets, "Tonight" card deck
   features/discover/ Discover front page, search/browse grid, listing sheet, Get button
+  features/circles/  Circles preview (needs accounts + sync; see STOREFRONT.md)
+  features/reader/   calm reader, settings panel, EPUB/PDF engines
   store/discover.ts  catalog rows, browse results, open listing, in-flight downloads
   styles/            tokens.css (design system) + global.css
 ```
@@ -122,7 +129,7 @@ The readers are code-split. epub.js and pdf.js (~800 KB) load only when a book i
 ## Roadmap (rough order)
 
 0. ~~Discover with a free catalog (Project Gutenberg)~~ ✓. Next: Standard Ebooks as a second provider.
-1. **Visual design**: inspiration → wireframes → pick a direction → rewrite tokens and components. Likely a custom title bar (`decorations: false`) and Windows Mica/Acrylic window effects.
+1. ~~Visual design~~ ✓ Direction C is implemented. Next polish: a custom title bar (`decorations: false`), page-turn and card-deck motion, and a dark variant of the UI.
 2. Book detail panel and metadata editing (title, authors, cover replacement).
 3. Collections / custom shelves.
 4. Reader settings: font, size, theme, margins, scroll vs. paged. Also a table of contents, plus highlights and notes.

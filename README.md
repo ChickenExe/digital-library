@@ -3,10 +3,16 @@
 A desktop home for your ebooks and PDFs. Built with **Tauri 2** (Rust core +
 React/TypeScript UI), targeting **Windows** first.
 
-> Status: architecture + working skeleton. The current UI is an intentionally
-> neutral wireframe; the visual design comes next.
+![Home](docs/screenshots/home.png)
+
+> Status: working app with Discover, Collection and the Index design. Circles (community) needs a backend and is previewed.
 
 ## What works today
+
+- **Home:** your collection as identity, with a giant volume count, stats, an index of numbered volumes,
+  **sets** to complete (the Austen Six, the Holmes canon…) and a "Tonight" card deck
+- **Reader:** calm and easy on the eyes, with Paper, Sepia, Dusk and Night themes, the Literata and
+  Atkinson Hyperlegible typefaces, size, spacing, line-length and pages/scroll controls, chapter names and time left
 
 - **Discover:** browse and search 70,000+ free public-domain books from Project Gutenberg,
   with curated rows, popularity ranking, summaries and one-click "Get" into your library

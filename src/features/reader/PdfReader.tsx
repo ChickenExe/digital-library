@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import type { Book } from "../../bindings/Book";
 import { openPdf, renderPage, type OpenPdf, type PdfDocument } from "../../lib/pdf";
 import type { ProgressHandler } from "./ReaderView";
+import { THEMES, useReaderSettings, WIDTHS } from "./settings";
 import styles from "./Reader.module.css";
 
 type Props = { book: Book; initialLocator?: string; onProgress: ProgressHandler };
 
-const MAX_PAGE_WIDTH = 900;
+/** PDFs are fixed-layout, so "width" maps to a page size rather than a text measure. */
+const PAGE_SCALE = 1.25;
 
 /**
  * Continuous-scroll PDF reader. Every page gets a correctly-sized placeholder
@@ -17,7 +19,10 @@ export function PdfReader({ book, initialLocator, onProgress }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const [doc, setDoc] = useState<PdfDocument | null>(null);
   const [aspect, setAspect] = useState(1.414);
-  const [width, setWidth] = useState(MAX_PAGE_WIDTH);
+  const widthSetting = useReaderSettings((s) => s.width);
+  const filter = useReaderSettings((s) => THEMES[s.theme].pdfFilter);
+  const maxWidth = WIDTHS[widthSetting].px * PAGE_SCALE;
+  const [width, setWidth] = useState(maxWidth);
   const [error, setError] = useState<string | null>(null);
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
@@ -46,10 +51,10 @@ export function PdfReader({ book, initialLocator, onProgress }: Props) {
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(Math.min(MAX_PAGE_WIDTH, el.clientWidth - 64)));
+    const ro = new ResizeObserver(() => setWidth(Math.min(maxWidth, el.clientWidth - 64)));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [maxWidth]);
 
   // Restore position once placeholders exist.
   useEffect(() => {
@@ -84,7 +89,7 @@ export function PdfReader({ book, initialLocator, onProgress }: Props) {
     <div ref={scroller} className={styles.pdf}>
       {doc &&
         Array.from({ length: doc.numPages }, (_, i) => (
-          <PdfPage key={i} doc={doc} pageNumber={i + 1} width={width} height={width * aspect} root={scroller} />
+          <PdfPage key={i} doc={doc} pageNumber={i + 1} width={width} height={width * aspect} root={scroller} filter={filter} />
         ))}
     </div>
   );
@@ -96,8 +101,9 @@ function PdfPage(props: {
   width: number;
   height: number;
   root: React.RefObject<HTMLDivElement | null>;
+  filter: string;
 }) {
-  const { doc, pageNumber, width, height, root } = props;
+  const { doc, pageNumber, width, height, root, filter } = props;
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState(false);
@@ -128,7 +134,7 @@ function PdfPage(props: {
   }, [visible, doc, pageNumber, width]);
 
   return (
-    <div ref={box} data-page={pageNumber} className={styles.pdfPage} style={{ width, height }}>
+    <div ref={box} data-page={pageNumber} className={styles.pdfPage} style={{ width, height, filter }}>
       {visible && <canvas ref={canvas} />}
     </div>
   );

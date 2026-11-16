@@ -1,58 +1,84 @@
-import { useEffect, useRef, useState } from "react";
-import ePub, { type Book as EpubBook, type Rendition } from "epubjs";
+import { useEffect, useMemo, useRef, useState } from "react";
+import ePub, { type Book as EpubBook, type Contents, type NavItem, type Rendition } from "epubjs";
 import type { Book } from "../../bindings/Book";
 import { fetchBookBytes } from "../../lib/api";
 import type { ProgressHandler } from "./ReaderView";
+import { epubCss, useReaderSettings, WIDTHS } from "./settings";
 import styles from "./Reader.module.css";
 
 type Props = { book: Book; initialLocator?: string; onProgress: ProgressHandler };
 
+/** epub.js splits books into locations of this many characters. */
+const CHARS_PER_LOCATION = 1600;
+const CHARS_PER_WORD = 5.7;
+const WORDS_PER_MINUTE = 240;
+
 export function EpubReader({ book, initialLocator, onProgress }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const rendition = useRef<Rendition | null>(null);
+  const epubRef = useRef<EpubBook | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
-  // Read through refs so changing callbacks don't re-open the book.
+
+  const { theme, font, size, leading, width, flow } = useReaderSettings();
+  const css = useMemo(
+    () => epubCss({ theme, font, size, leading, width, flow }),
+    [theme, font, size, leading, width, flow],
+  );
+
+  // Read through refs so changing callbacks/styles don't re-open the book.
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
-  const initial = useRef(initialLocator);
+  const cssRef = useRef(css);
+  cssRef.current = css;
+  const cfiRef = useRef<string | undefined>(initialLocator);
 
+  // Open the book. Layout changes epub.js can't apply in place (pages vs scroll,
+  // column width) re-open it at the current position, which is quick and exact.
   useEffect(() => {
     let epub: EpubBook | undefined;
     let cancelled = false;
+    setReady(false);
 
     (async () => {
       const data = await fetchBookBytes(book.id);
       if (cancelled || !host.current) return;
       epub = ePub(data);
+      epubRef.current = epub;
       const r = epub.renderTo(host.current, {
         width: "100%",
         height: "100%",
-        flow: "paginated",
-        spread: "auto",
+        flow: flow === "paginated" ? "paginated" : "scrolled-doc",
+        manager: flow === "paginated" ? "default" : "continuous",
+        spread: "none",
         allowScriptedContent: false,
       });
       rendition.current = r;
-      r.themes.default({
-        body: { "font-family": "Georgia, 'Iowan Old Style', serif", "line-height": "1.6" },
-        "p, li": { "font-size": "1.05em" },
+      r.hooks.content.register((contents: Contents) => {
+        contents.addStylesheetCss(cssRef.current, "folio");
       });
 
-      r.on("relocated", (loc: { start: { cfi: string; percentage?: number } }) => {
-        const cfi = loc.start.cfi;
+      let toc: NavItem[] = [];
+      r.on("relocated", (loc: { start: { cfi: string; href: string; percentage?: number } }) => {
+        cfiRef.current = loc.start.cfi;
         const locs = epub?.locations;
-        const percent = locs && locs.length() > 0 ? locs.percentageFromCfi(cfi) : (loc.start.percentage ?? 0);
-        onProgressRef.current(cfi, percent);
+        const total = locs?.length() ?? 0;
+        const percent = total > 0 ? locs!.percentageFromCfi(loc.start.cfi) : (loc.start.percentage ?? 0);
+        const minutesLeft =
+          total > 0 ? ((1 - percent) * total * CHARS_PER_LOCATION) / CHARS_PER_WORD / WORDS_PER_MINUTE : undefined;
+        onProgressRef.current(loc.start.cfi, percent, { chapter: chapterFor(toc, loc.start.href), minutesLeft });
       });
       // Arrow keys while focus is inside the book's iframe.
       r.on("keyup", (e: KeyboardEvent) => navigateKey(e, r));
 
-      await r.display(initial.current || undefined);
+      await r.display(cfiRef.current || undefined);
       if (cancelled) return;
       setReady(true);
-      // Percentages need a location map; generating it is slow on big books, so do it after first paint.
+
+      // Chapter names + a location map (for percent and time left), computed after first paint.
       await epub.ready;
-      await epub.locations.generate(1600);
+      toc = flatten(epub.navigation?.toc ?? []);
+      await epub.locations.generate(CHARS_PER_LOCATION);
       if (!cancelled) r.reportLocation();
     })().catch((e) => !cancelled && setError(String(e?.message ?? e)));
 
@@ -62,20 +88,47 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
       cancelled = true;
       window.removeEventListener("keyup", onKey);
       rendition.current = null;
+      epubRef.current = null;
       epub?.destroy();
     };
-  }, [book.id]);
+  }, [book.id, flow, width]);
+
+  // Apply typography/theme changes live, keeping the reader's place. The relayout
+  // itself fires "relocated" events, so pin the position from *before* the change.
+  const anchorRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const r = rendition.current;
+    if (!r || !ready) return;
+    anchorRef.current ??= cfiRef.current;
+    const anchor = anchorRef.current;
+    const contents = r.getContents() as unknown as Contents[];
+    for (const c of contents) c.addStylesheetCss(css, "folio");
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      if (cancelled) return;
+      if (anchor) await r.display(anchor);
+      anchorRef.current = undefined;
+    }, 150);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [css, ready]);
 
   if (error) return <div className={styles.error}>Couldn’t open this EPUB: {error}</div>;
 
   return (
     <div className={styles.epub}>
-      <button className={styles.turnLeft} onClick={() => void rendition.current?.prev()} aria-label="Previous page">
-        ‹
+      <button className={styles.turn} onClick={() => void rendition.current?.prev()} aria-label="Previous page">
+        <span>←</span>
       </button>
-      <div ref={host} className={styles.page} style={{ opacity: ready ? 1 : 0 }} />
-      <button className={styles.turnRight} onClick={() => void rendition.current?.next()} aria-label="Next page">
-        ›
+      <div
+        ref={host}
+        className={`${styles.column} ${flow === "scrolled" ? styles.scrolled : ""}`}
+        style={{ maxWidth: WIDTHS[width].px, opacity: ready ? 1 : 0 }}
+      />
+      <button className={styles.turn} onClick={() => void rendition.current?.next()} aria-label="Next page">
+        <span>→</span>
       </button>
     </div>
   );
@@ -84,4 +137,18 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
 function navigateKey(e: KeyboardEvent, r: Rendition) {
   if (e.key === "ArrowLeft" || e.key === "PageUp") void r.prev();
   if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") void r.next();
+}
+
+function flatten(items: NavItem[]): NavItem[] {
+  return items.flatMap((i) => [i, ...flatten(i.subitems ?? [])]);
+}
+
+/** The table-of-contents label for the section currently on screen. */
+function chapterFor(toc: NavItem[], href: string): string | undefined {
+  const target = href.split("#")[0];
+  const match = toc.find((t) => {
+    const h = t.href.split("#")[0];
+    return h === target || target.endsWith(`/${h}`) || h.endsWith(`/${target}`);
+  });
+  return match?.label.trim();
 }

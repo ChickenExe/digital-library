@@ -1,19 +1,19 @@
 /*
- * Design tokens. Every visual decision in the app routes through these
- * variables, so the upcoming visual redesign is mostly a rewrite of this file
- * (plus per-component tweaks in *.module.css). Current look: neutral wireframe.
+ * Design tokens: direction C, "Index". Swiss editorial: Archivo grotesk,
+ * JetBrains Mono labels, red-orange on ink and paper, hairline rules.
+ * The reader has its own calm palette (see features/reader/theme.ts).
  */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Type */
-  --font-ui: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-display: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-ui: "Archivo Variable", "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   --text-xs: 11px;
   --text-sm: 12.5px;
   --text-md: 14px;
-  --text-lg: 17px;
-  --text-xl: 22px;
+  --text-lg: 18px;
+  --text-xl: 28px;
 
   /* Spacing (4px grid) */
   --space-1: 4px;
@@ -23,55 +23,36 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
+  --space-12: 48px;
 
   /* Shape */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-cover: 4px;
-  --control-height: 34px;
-  --sidebar-width: 232px;
-  --card-width: 150px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --radius-cover: 2px;
+  --control-height: 36px;
+  --header-height: 76px;
+  --card-width: 132px;
 
-  /* Color — light */
-  --color-bg: #f6f6f4;
-  --color-sidebar: #eeeeeb;
-  --color-surface: #ffffff;
-  --color-surface-raised: #ffffff;
-  --color-text: #1d1d1f;
-  --color-text-muted: #5f5f66;
-  --color-text-faint: #9a9aa1;
-  --color-border: #deded9;
-  --color-border-strong: #b8b8b2;
-  --color-hover: rgba(0, 0, 0, 0.045);
-  --color-selected: rgba(0, 0, 0, 0.08);
-  --color-accent: #3b6df0;
-  --color-accent-text: #ffffff;
-  --color-focus: #3b6df0;
-  --color-danger: #d64545;
-  --color-reader-bg: #ecebe7;
-  --color-page: #fffdf8;
+  /* Color */
+  --color-bg: #e9e9e6;
+  --color-paper: #fafaf8;
+  --color-ink: #101010;
+  --color-ink-2: #2a2a2a;
+  --color-red: #ff4d1f;
+  --color-red-ink: #d93a10;
+  --color-text: #101010;
+  --color-text-muted: #6d6d68;
+  --color-text-faint: #9a9a94;
+  --color-rule: rgba(16, 16, 16, 0.14);
+  --color-rule-strong: #101010;
+  --color-hover: rgba(16, 16, 16, 0.06);
+  --color-focus: #ff4d1f;
 
-  --shadow-md: 0 4px 18px rgba(0, 0, 0, 0.08);
-  --shadow-cover: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.1);
-  --shadow-cover-hover: 0 2px 4px rgba(0, 0, 0, 0.14), 0 12px 28px rgba(0, 0, 0, 0.16);
-}
+  --shadow-card: 0 40px 60px -24px rgba(0, 0, 0, 0.35);
+  --shadow-cover: 0 1px 2px rgba(0, 0, 0, 0.15), 0 8px 18px -6px rgba(0, 0, 0, 0.25);
+  --shadow-cover-hover: 0 2px 4px rgba(0, 0, 0, 0.18), 0 18px 30px -8px rgba(0, 0, 0, 0.35);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #1b1b1e;
-    --color-sidebar: #161618;
-    --color-surface: #242428;
-    --color-surface-raised: #2b2b30;
-    --color-text: #ececef;
-    --color-text-muted: #a3a3ab;
-    --color-text-faint: #6c6c74;
-    --color-border: #313136;
-    --color-border-strong: #4a4a52;
-    --color-hover: rgba(255, 255, 255, 0.05);
-    --color-selected: rgba(255, 255, 255, 0.09);
-    --color-reader-bg: #121214;
-    --color-page: #f4f1ea;
-    --shadow-md: 0 4px 18px rgba(0, 0, 0, 0.4);
-  }
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }

@@ -1,0 +1,25 @@
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(520px, 50%) 1fr; }
+.intro { padding: 30px var(--space-12); border-right: 1px solid var(--color-rule); overflow-y: auto; }
+.soon { color: var(--color-red); }
+.title { font-size: clamp(72px, 8vw, 128px); font-weight: 900; font-stretch: 112%; letter-spacing: -0.05em; line-height: 0.86; margin: var(--space-8) 0 var(--space-6); }
+.lede { font-size: 18px; line-height: 1.45; color: var(--color-text-muted); max-width: 520px; margin: 0; }
+.points { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--color-rule-strong); margin-top: var(--space-10); }
+.point { padding: 14px 16px 0 0; color: var(--color-text-muted); }
+.point + .point { border-left: 1px solid var(--color-rule); padding-left: 16px; }
+.point h3 { color: var(--color-text); font-size: 17px; font-weight: 800; font-stretch: 112%; text-transform: uppercase; margin: 10px 0 8px; }
+.point p { margin: 0; font-size: 13px; line-height: 1.5; }
+
+.preview { position: relative; overflow: hidden; perspective: 1700px; }
+.card { position: absolute; left: 8%; width: min(540px, 86%); border-radius: var(--radius-lg); padding: 28px 32px; box-shadow: var(--shadow-card); }
+.ink { top: 90px; height: 340px; background: var(--color-ink); color: var(--color-paper); transform: rotateX(22deg) rotateY(-12deg) rotateZ(-6deg); z-index: 2; }
+.paper { top: 420px; height: 300px; background: var(--color-paper); transform: rotateX(26deg) rotateY(-8deg) rotateZ(2deg); }
+.row { display: flex; justify-content: space-between; opacity: 0.75; }
+.red { color: var(--color-red); opacity: 1; }
+.card h2 { font-size: 46px; font-weight: 800; font-stretch: 120%; text-transform: uppercase; letter-spacing: -0.02em; line-height: 0.95; margin: 26px 0 8px; }
+.meta { opacity: 0.6; }
+.ruler { position: relative; margin-top: 64px; height: 1px; background: rgba(250, 250, 248, 0.35); }
+.mk { position: absolute; top: -36px; transform: translateX(-50%); text-align: center; font-family: var(--font-mono); font-size: 10px; }
+.mk span { display: grid; place-items: center; width: 26px; height: 26px; margin: 0 auto 8px; border-radius: 6px; background: #2c2c2c; }
+.you span { background: var(--color-red); }
+.legend { margin-top: 26px; opacity: 0.5; }
+.paper blockquote { margin: 28px 0 18px; font-size: 34px; font-weight: 800; font-stretch: 115%; text-transform: uppercase; line-height: 1; letter-spacing: -0.02em; }

@@ -1,19 +1,108 @@
+import { useMemo, useState } from "react";
+import type { BookFormat } from "../../bindings/BookFormat";
+import type { Shelf } from "../../bindings/Shelf";
+import type { SortKey } from "../../bindings/SortKey";
+import { debounce, volumeLabel } from "../../lib/format";
 import { useLibrary } from "../../store/library";
-import { Toolbar } from "./Toolbar";
 import { BookCard } from "./BookCard";
 import styles from "./LibraryView.module.css";
 
+const SHELVES: { id: Shelf; label: string; count: (s: ReturnType<typeof useStats>) => number }[] = [
+  { id: "all", label: "All", count: (s) => s.total },
+  { id: "reading", label: "Reading", count: (s) => s.reading },
+  { id: "favorites", label: "Favorites", count: (s) => s.favorites },
+  { id: "finished", label: "Finished", count: (s) => s.finished },
+];
+const FORMATS: { id: BookFormat | undefined; label: string }[] = [
+  { id: undefined, label: "Any format" },
+  { id: "epub", label: "EPUB" },
+  { id: "pdf", label: "PDF" },
+];
+const SORTS: { id: SortKey; label: string }[] = [
+  { id: "recent", label: "Newest volumes" },
+  { id: "lastRead", label: "Recently read" },
+  { id: "title", label: "Title" },
+  { id: "author", label: "Author" },
+];
+
+const useStats = () => useLibrary((s) => s.stats);
+
+/** 03 — Collection: everything you own, numbered. */
 export function LibraryView() {
   const books = useLibrary((s) => s.books);
   const loaded = useLibrary((s) => s.loaded);
   const query = useLibrary((s) => s.query);
-  const total = useLibrary((s) => s.stats.total);
+  const setQuery = useLibrary((s) => s.setQuery);
+  const stats = useStats();
+  const [search, setSearch] = useState(query.search ?? "");
+  const pushSearch = useMemo(() => debounce((v: string) => setQuery({ search: v || undefined }), 150), [setQuery]);
 
   return (
     <main className={styles.main}>
-      <Toolbar />
+      <div className={styles.head}>
+        <div className={styles.titleRow}>
+          <div>
+            <div className="section-label mono">
+              <span>
+                <b>3.1</b> — Collection
+              </span>
+            </div>
+            <h1 className={styles.title}>
+              {volumeLabel(stats.total)} <span>volumes</span>
+            </h1>
+          </div>
+          <div className={styles.controls}>
+            <input
+              className={`${styles.search} mono`}
+              type="search"
+              placeholder="Search your collection"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                pushSearch(e.target.value);
+              }}
+            />
+            <select
+              className={`${styles.select} mono`}
+              value={query.sort}
+              onChange={(e) => setQuery({ sort: e.target.value as SortKey })}
+              aria-label="Sort by"
+            >
+              {SORTS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className={`${styles.tabs} mono`}>
+          {SHELVES.map((s, i) => (
+            <button
+              key={s.id}
+              className={query.shelf === s.id ? styles.on : ""}
+              onClick={() => setQuery({ shelf: s.id })}
+            >
+              <b>{String(i + 1).padStart(2, "0")}</b>
+              {s.label}
+              <em>{s.count(stats)}</em>
+            </button>
+          ))}
+          <span className={styles.divider} />
+          {FORMATS.map((f) => (
+            <button
+              key={f.label}
+              className={query.format === f.id ? styles.on : ""}
+              onClick={() => setQuery({ format: f.id })}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loaded && books.length === 0 ? (
-        <EmptyState filtered={total > 0 || !!query.search} />
+        <EmptyState filtered={stats.total > 0 || !!query.search} />
       ) : (
         <div className={styles.grid}>
           {books.map((b) => (
@@ -28,26 +117,24 @@ export function LibraryView() {
 function EmptyState({ filtered }: { filtered: boolean }) {
   const pickAndImport = useLibrary((s) => s.pickAndImport);
   const navigate = useLibrary((s) => s.navigate);
-  if (filtered) {
-    return (
-      <div className={styles.empty}>
-        <h2>Nothing here</h2>
-        <p>No books match this view.</p>
-      </div>
-    );
-  }
   return (
     <div className={styles.empty}>
-      <h2>Your library is empty</h2>
-      <p>Find something free to read in Discover, or bring your own EPUB and PDF files.</p>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button className="btn btn-primary" onClick={() => navigate("discover")}>
-          Browse free books
-        </button>
-        <button className="btn" onClick={() => void pickAndImport()}>
-          Add files…
-        </button>
-      </div>
+      <div className={styles.emptyNum}>000</div>
+      {filtered ? (
+        <p>No volumes match this view.</p>
+      ) : (
+        <>
+          <p>Your collection starts here. Find a free classic, or bring your own EPUB and PDF files.</p>
+          <div className={styles.emptyActions}>
+            <button className="btn btn-primary btn-lg" onClick={() => navigate("discover")}>
+              Browse free books
+            </button>
+            <button className="btn btn-lg" onClick={() => void pickAndImport()}>
+              Add files
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { CatalogCover } from "./CatalogCover";
 import { GetButton } from "./GetButton";
 import styles from "./Spotlight.module.css";
 
-/** Front-page feature for a single book. */
+/** Front-page feature: the most-read book, on a big red card. */
 export function Spotlight({ entry }: { entry: CatalogEntry }) {
   const [detail, setDetail] = useState<CatalogDetail | null>(null);
   const openListing = useDiscover((s) => s.openListing);
@@ -20,21 +20,23 @@ export function Spotlight({ entry }: { entry: CatalogEntry }) {
 
   return (
     <section className={styles.spotlight}>
-      <button className={styles.cover} onClick={() => void openListing(live)}>
-        <CatalogCover entry={live} size="lg" />
-      </button>
       <div className={styles.body}>
-        <div className={styles.kicker}>Most read this week</div>
+        <div className={`${styles.kicker} mono`}>
+          <span>2.0 — Spotlight · #01 most read this week</span>
+        </div>
         <h1 className={styles.title}>{live.title}</h1>
-        <div className={styles.author}>{authorLine(live)}</div>
+        <div className={`${styles.author} mono`}>{authorLine(live)}</div>
         {detail?.summary && <p className={styles.summary}>{detail.summary}</p>}
         <div className={styles.actions}>
-          <GetButton entry={live} large />
-          <button className="btn btn-lg" onClick={() => void openListing(live)}>
+          <GetButton entry={live} large variant="ink" />
+          <button className={`btn btn-lg ${styles.ghost}`} onClick={() => void openListing(live)}>
             Details
           </button>
         </div>
       </div>
+      <button className={styles.cover} onClick={() => void openListing(live)}>
+        <CatalogCover entry={live} size="lg" />
+      </button>
     </section>
   );
 }

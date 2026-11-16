@@ -2,61 +2,42 @@
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(16, 16, 16, 0.32);
   display: flex;
   justify-content: flex-end;
   animation: fade 160ms ease;
 }
 .sheet {
   position: relative;
-  width: min(560px, 92vw);
+  width: min(600px, 92vw);
   height: 100%;
   overflow-y: auto;
-  background: var(--color-bg);
-  border-left: 1px solid var(--color-border);
-  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.18);
-  padding: var(--space-10) var(--space-8);
-  animation: slide 200ms ease;
+  background: var(--color-paper);
+  padding: var(--space-6) var(--space-10) var(--space-12);
+  animation: slide 260ms var(--ease-out);
   user-select: text;
 }
 @keyframes fade { from { opacity: 0; } }
-@keyframes slide { from { transform: translateX(40px); opacity: 0; } }
-.close {
-  position: absolute;
-  top: var(--space-4);
-  right: var(--space-4);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  color: var(--color-text-muted);
-}
-.close:hover { background: var(--color-hover); }
-.hero { display: grid; grid-template-columns: 150px 1fr; gap: var(--space-6); align-items: end; }
-.cover { width: 150px; }
-.title { font-family: var(--font-display); font-size: 26px; line-height: 1.15; margin: 0 0 var(--space-1); }
+@keyframes slide { from { transform: translateX(60px); opacity: 0; } }
+.top { display: flex; justify-content: space-between; color: var(--color-text-muted); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-rule); }
+.top button { letter-spacing: inherit; text-transform: inherit; }
+.top button:hover { color: var(--color-red); }
+
+.hero { display: grid; grid-template-columns: 170px 1fr; gap: var(--space-6); align-items: end; margin-top: var(--space-8); }
+.cover { width: 170px; transform: rotate(-3deg); }
+.title { font-size: 38px; font-weight: 900; font-stretch: 115%; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.92; margin: 0 0 var(--space-3); }
 .author { color: var(--color-text-muted); }
-.price { margin-top: var(--space-3); font-size: var(--text-sm); color: var(--color-text-faint); }
-.actions { margin-top: var(--space-4); display: flex; gap: var(--space-2); }
+.actions { margin-top: var(--space-6); display: flex; gap: var(--space-2); }
+
+.facts { display: grid; grid-template-columns: repeat(2, 1fr); margin: var(--space-8) 0 0; border-top: 1px solid var(--color-rule-strong); }
+.facts div { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--color-rule); }
+.facts div:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--color-rule); }
+.facts dt { color: var(--color-text-muted); }
+.facts dd { margin: 4px 0 0; font-weight: 600; }
+
 .section { margin-top: var(--space-8); }
-.section h3 {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-faint);
-  margin: 0 0 var(--space-2);
-}
-.summary { line-height: 1.6; margin: 0; }
-.note { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-faint); }
-.skeleton { height: 88px; border-radius: var(--radius-sm); background: var(--color-hover); }
-.facts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin: 0; }
-.facts dt { font-size: var(--text-xs); color: var(--color-text-faint); }
-.facts dd { margin: 2px 0 0; }
-.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.chip {
-  font-size: var(--text-xs);
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-}
-.source { margin-top: var(--space-8); color: var(--color-accent); font-size: var(--text-sm); padding: 0; }
+.summary { line-height: 1.6; margin: var(--space-3) 0 0; font-size: 15px; }
+.skeleton { height: 88px; margin-top: var(--space-3); border-radius: var(--radius-sm); background: var(--color-hover); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-3); }
+.chip { padding: 5px 10px; border-radius: var(--radius-pill); border: 1px solid var(--color-rule); color: var(--color-text-muted); font-size: 10px; }
+.source { margin-top: var(--space-8); color: var(--color-red); }

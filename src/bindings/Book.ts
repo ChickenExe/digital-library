@@ -7,4 +7,8 @@ export type Book = { id: string, title: string, authors: Array<string>, descript
 /**
  * Changes whenever the cover file changes; append to cover URLs to bust caches.
  */
-coverVersion: number, favorite: boolean, addedAt: number, progress: ReadingProgress | null, };
+coverVersion: number, favorite: boolean, addedAt: number, progress: ReadingProgress | null, 
+/**
+ * Permanent collector's number, in order of acquisition ("No. 042").
+ */
+volume: number, };

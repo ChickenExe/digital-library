@@ -10,6 +10,7 @@
 
 pub mod commands;
 pub mod gutenberg;
+pub mod sets;
 pub mod store;
 pub mod sync;
 

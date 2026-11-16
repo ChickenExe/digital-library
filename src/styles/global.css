@@ -13,22 +13,51 @@ body {
 }
 
 button, input, select { font: inherit; color: inherit; }
-button { background: none; border: 0; cursor: pointer; }
+button { background: none; border: 0; cursor: pointer; padding: 0; }
 button:disabled { cursor: default; opacity: 0.55; }
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+/* Mono label: section numbers, metadata, nav. */
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
 .btn {
   height: var(--control-height);
   padding: 0 var(--space-4);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-rule);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: background 120ms ease, transform 120ms ease;
 }
 .btn:hover:not(:disabled) { background: var(--color-hover); }
-.btn-lg { height: 40px; padding: 0 var(--space-6); font-weight: 500; }
-.btn-primary { background: var(--color-accent); border-color: transparent; color: var(--color-accent-text); }
-.btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 88%, black); }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn-ink { background: var(--color-ink); color: var(--color-paper); border-color: transparent; }
+.btn-ink:hover:not(:disabled) { background: var(--color-ink-2); }
+.btn-primary { background: var(--color-red); color: #fff; border-color: transparent; }
+.btn-primary:hover:not(:disabled) { background: var(--color-red-ink); }
+.btn-lg { height: 44px; padding: 0 var(--space-6); }
+
+/* Section label row: "2.1 — Title ........ meta" */
+.section-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: var(--color-text-muted);
+}
+.section-label b { color: var(--color-text); font-weight: 500; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 5px; border: 2px solid var(--color-bg); }
+::-webkit-scrollbar-thumb { background: rgba(16, 16, 16, 0.22); border-radius: 5px; border: 3px solid var(--color-bg); }
 ::-webkit-scrollbar-track { background: transparent; }

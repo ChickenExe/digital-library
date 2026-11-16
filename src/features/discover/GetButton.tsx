@@ -3,24 +3,27 @@ import { listingKey } from "../../lib/api";
 import { useDiscover } from "../../store/discover";
 import { useLibrary } from "../../store/library";
 
+type Props = { entry: CatalogEntry; large?: boolean; variant?: "primary" | "ink" };
+
 /** The primary call to action for a listing: Get (free) → progress → Read. */
-export function GetButton({ entry, large }: { entry: CatalogEntry; large?: boolean }) {
+export function GetButton({ entry, large, variant = "primary" }: Props) {
   const progress = useDiscover((s) => s.downloads[listingKey(entry)]);
   const acquire = useDiscover((s) => s.acquire);
   const closeListing = useDiscover((s) => s.closeListing);
   const openBook = useLibrary((s) => s.openBook);
-  const cls = `btn btn-primary${large ? " btn-lg" : ""}`;
+  const cls = `btn btn-${variant}${large ? " btn-lg" : ""}`;
 
   if (entry.ownedBookId) {
     return (
       <button
-        className={cls}
-        onClick={() => {
+        className={`btn btn-ink${large ? " btn-lg" : ""}`}
+        onClick={(e) => {
+          e.stopPropagation();
           closeListing();
           openBook(entry.ownedBookId!);
         }}
       >
-        Read
+        Read →
       </button>
     );
   }
@@ -34,7 +37,13 @@ export function GetButton({ entry, large }: { entry: CatalogEntry; large?: boole
     );
   }
   return (
-    <button className={cls} onClick={() => void acquire(entry)}>
+    <button
+      className={cls}
+      onClick={(e) => {
+        e.stopPropagation();
+        void acquire(entry);
+      }}
+    >
       Get · Free
     </button>
   );

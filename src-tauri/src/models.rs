@@ -83,6 +83,8 @@ pub struct Book {
     #[ts(type = "number")]
     pub added_at: i64,
     pub progress: Option<ReadingProgress>,
+    /// Permanent collector's number, in order of acquisition ("No. 042").
+    pub volume: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -162,4 +164,6 @@ pub struct LibraryStats {
     pub reading: u32,
     pub favorites: u32,
     pub finished: u32,
+    /// Distinct authors in the collection.
+    pub authors: u32,
 }

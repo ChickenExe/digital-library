@@ -29,3 +29,9 @@ export function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: numb
   };
   return debounced;
 }
+
+/** Collector's number: 42 -> "042". */
+export const volumeLabel = (n: number) => String(n).padStart(3, "0");
+
+/** Index-style section number for lists: 1 -> "01". */
+export const pad2 = (n: number) => String(n).padStart(2, "0");

@@ -17,8 +17,8 @@ export function DropOverlay() {
   return (
     <div className={styles.overlay}>
       <div className={styles.panel}>
-        <div className={styles.icon}>＋</div>
-        <div className={styles.title}>Drop to add to your library</div>
+        <div className={styles.icon}>3.0 — Add to collection</div>
+        <div className={styles.title}>Drop to number them</div>
         <div className={styles.hint}>EPUB and PDF files, or whole folders</div>
       </div>
     </div>

@@ -1,27 +1,40 @@
 .spotlight {
+  position: relative;
   display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: var(--space-8);
-  align-items: center;
-  margin: 0 var(--space-8) var(--space-10);
-  padding: var(--space-8);
+  grid-template-columns: 1fr 190px;
+  gap: var(--space-10);
+  align-items: end;
+  margin: 0 var(--space-12) var(--space-12);
+  padding: var(--space-8) var(--space-10) var(--space-10);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-red);
+  color: #fff;
+  overflow: hidden;
 }
-.cover { padding: 0; display: block; }
-.body { min-width: 0; }
-.kicker { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-faint); }
-.title { font-family: var(--font-display); font-size: 30px; line-height: 1.15; margin: var(--space-2) 0 var(--space-1); }
-.author { color: var(--color-text-muted); }
+.kicker { display: flex; justify-content: space-between; opacity: 0.8; }
+.title {
+  font-size: clamp(44px, 5vw, 76px);
+  font-weight: 900;
+  font-stretch: 115%;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  margin: var(--space-6) 0 var(--space-3);
+  max-width: 900px;
+}
+.author { opacity: 0.85; }
 .summary {
   margin: var(--space-4) 0 0;
   max-width: 640px;
-  line-height: 1.55;
-  color: var(--color-text-muted);
+  line-height: 1.5;
+  opacity: 0.9;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.actions { display: flex; gap: var(--space-3); margin-top: var(--space-6); }
+.actions { display: flex; gap: var(--space-2); margin-top: var(--space-6); }
+.ghost { border-color: rgba(255, 255, 255, 0.5); color: #fff; }
+.ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
+.cover { display: block; transform: rotate(4deg) translateY(10px); box-shadow: 0 30px 50px -10px rgba(0, 0, 0, 0.4); transition: transform 300ms var(--ease-out); }
+.cover:hover { transform: rotate(0) translateY(0); }
