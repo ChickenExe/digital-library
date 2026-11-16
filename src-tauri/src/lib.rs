@@ -8,6 +8,7 @@ mod library;
 mod models;
 mod protocol;
 mod state;
+mod thumbs;
 
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
@@ -75,6 +76,8 @@ pub fn run() {
             commands::save_progress,
             commands::save_cover,
             commands::mark_cover_missing,
+            commands::get_locations,
+            commands::save_locations,
             catalog::commands::catalog_status,
             catalog::commands::catalog_sync,
             catalog::commands::catalog_home,

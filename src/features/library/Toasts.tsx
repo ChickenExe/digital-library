@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { EASE, SPRING } from "../../lib/motion";
 import { useLibrary } from "../../store/library";
 import styles from "./Toasts.module.css";
@@ -11,7 +11,7 @@ export function Toasts() {
     <div className={styles.stack} aria-live="polite">
       <AnimatePresence mode="popLayout">
       {importing && (
-        <motion.div key="importing" className={styles.toast} {...toastMotion}>
+        <m.div key="importing" className={styles.toast} {...toastMotion}>
           <div>
             Importing {Math.min(importing.done + 1, importing.total)} of {importing.total}
             {importing.current && <span className={styles.muted}> · {importing.current}</span>}
@@ -22,17 +22,17 @@ export function Toasts() {
               style={{ width: `${(importing.done / Math.max(importing.total, 1)) * 100}%` }}
             />
           </div>
-        </motion.div>
+        </m.div>
       )}
       {toasts.map((t) => (
-        <motion.button
+        <m.button
           key={t.id}
           className={`${styles.toast} ${t.tone === "error" ? styles.error : ""}`}
           onClick={() => dismiss(t.id)}
           {...toastMotion}
         >
           {t.text}
-        </motion.button>
+        </m.button>
       ))}
       </AnimatePresence>
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { animate } from "motion/react";
 import ePub, { type Book as EpubBook, type Contents, type NavItem, type Rendition } from "epubjs";
 import type { Book } from "../../bindings/Book";
-import { fetchBookBytes } from "../../lib/api";
+import { api, fetchBookBytes } from "../../lib/api";
 import { EASE, prefersReducedMotion } from "../../lib/motion";
 import type { ProgressHandler } from "./ReaderView";
 import { epubCss, useReaderSettings, WIDTHS } from "./settings";
@@ -80,7 +80,17 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
       // Chapter names + a location map (for percent and time left), computed after first paint.
       await epub.ready;
       toc = flatten(epub.navigation?.toc ?? []);
-      await epub.locations.generate(CHARS_PER_LOCATION);
+      // Generating the map walks the whole book on the UI thread (seconds for long
+      // books), so it's computed once and cached in the library database.
+      const cached = await api.getLocations(book.id, CHARS_PER_LOCATION).catch(() => null);
+      if (cancelled) return;
+      if (cached) {
+        epub.locations.load(cached);
+      } else {
+        await epub.locations.generate(CHARS_PER_LOCATION);
+        if (cancelled) return;
+        void api.saveLocations(book.id, CHARS_PER_LOCATION, epub.locations.save()).catch(() => {});
+      }
       if (!cancelled) r.reportLocation();
     })().catch((e) => !cancelled && setError(String(e?.message ?? e)));
 

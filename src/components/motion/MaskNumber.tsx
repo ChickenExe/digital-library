@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { EASE } from "../../lib/motion";
 import styles from "./MaskNumber.module.css";
 
@@ -24,7 +24,7 @@ export function MaskNumber({ value, ghostBefore = 0, className, ghostClassName, 
       {chars.map((ch, i) => (
         <span key={`${chars.length}-${i}`} className={styles.slot} aria-hidden>
           <AnimatePresence initial={true} mode="popLayout">
-            <motion.span
+            <m.span
               key={ch}
               className={`${styles.digit} ${i < ghostBefore ? (ghostClassName ?? "") : ""}`}
               initial={{ y: "105%" }}
@@ -32,7 +32,7 @@ export function MaskNumber({ value, ghostBefore = 0, className, ghostClassName, 
               exit={{ y: "-60%", opacity: 0, transition: { duration: 0.25, ease: EASE.in } }}
             >
               {ch}
-            </motion.span>
+            </m.span>
           </AnimatePresence>
         </span>
       ))}

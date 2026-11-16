@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { SPRING } from "../../lib/motion";
 import type { Section } from "../../store/library";
 import { useLibrary } from "../../store/library";
@@ -36,7 +36,7 @@ export function Header() {
               navigate(n.id);
             }}
           >
-            {view === n.id && <motion.span layoutId="nav-pill" className={styles.pill} transition={SPRING.pill} />}
+            {view === n.id && <m.span layoutId="nav-pill" className={styles.pill} transition={SPRING.pill} />}
             <span className={styles.label}>
               <b>0{i + 1}</b>
               {n.label}

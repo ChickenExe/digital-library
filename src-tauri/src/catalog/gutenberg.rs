@@ -55,7 +55,16 @@ pub struct CatalogRecord {
 }
 
 /// Parses `pg_catalog.csv` (already decompressed). Keeps text works only.
+#[cfg(test)]
 pub fn parse_catalog<R: Read>(reader: R) -> AppResult<Vec<CatalogRecord>> {
+    let mut out = Vec::with_capacity(80_000);
+    for_each_record(reader, |r| out.push(r))?;
+    Ok(out)
+}
+
+/// Streams records one at a time (the sync path), so memory stays flat instead
+/// of holding the whole ~78k-row catalogue at once.
+pub fn for_each_record<R: Read>(reader: R, mut each: impl FnMut(CatalogRecord)) -> AppResult<()> {
     let mut csv = csv::ReaderBuilder::new().has_headers(true).flexible(true).from_reader(reader);
     let headers = csv.headers().map_err(|e| AppError::Parse(e.to_string()))?.clone();
     let col = |name: &str| {
@@ -75,7 +84,6 @@ pub fn parse_catalog<R: Read>(reader: R) -> AppResult<Vec<CatalogRecord>> {
         col("Bookshelves")?,
     );
 
-    let mut out = Vec::with_capacity(80_000);
     for row in csv.records() {
         let Ok(row) = row else { continue };
         let get = |i: usize| row.get(i).unwrap_or("").trim();
@@ -86,7 +94,7 @@ pub fn parse_catalog<R: Read>(reader: R) -> AppResult<Vec<CatalogRecord>> {
         if title.is_empty() {
             continue;
         }
-        out.push(CatalogRecord {
+        each(CatalogRecord {
             id: get(id_c).to_string(),
             title,
             authors: parse_authors(get(authors_c)),
@@ -99,7 +107,7 @@ pub fn parse_catalog<R: Read>(reader: R) -> AppResult<Vec<CatalogRecord>> {
                 .collect(),
         });
     }
-    Ok(out)
+    Ok(())
 }
 
 fn split_list(s: &str) -> Vec<String> {

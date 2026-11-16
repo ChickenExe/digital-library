@@ -127,6 +127,8 @@ pub struct BookQuery {
     pub shelf: Shelf,
     pub format: Option<BookFormat>,
     pub sort: SortKey,
+    /// Return at most this many books (e.g. Home's "latest 7").
+    pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, TS)]

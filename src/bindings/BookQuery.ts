@@ -3,4 +3,8 @@ import type { BookFormat } from "./BookFormat";
 import type { Shelf } from "./Shelf";
 import type { SortKey } from "./SortKey";
 
-export type BookQuery = { search?: string, shelf: Shelf, format?: BookFormat, sort: SortKey, };
+export type BookQuery = { search?: string, shelf: Shelf, format?: BookFormat, sort: SortKey, 
+/**
+ * Return at most this many books (e.g. Home's "latest 7").
+ */
+limit?: number, };

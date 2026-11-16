@@ -18,6 +18,7 @@ pub struct LibraryPaths {
     pub db: PathBuf,
     pub books: PathBuf,
     pub covers: PathBuf,
+    pub thumbs: PathBuf,
     pub incoming: PathBuf,
 }
 
@@ -28,11 +29,12 @@ impl LibraryPaths {
             db: app_data.join("library.db"),
             books: root.join("books"),
             covers: root.join("covers"),
+            thumbs: root.join("covers").join("thumbs"),
             incoming: root.join("incoming"),
         };
         // Leftovers from an interrupted download are useless; start clean.
         let _ = std::fs::remove_dir_all(&paths.incoming);
-        for dir in [&paths.books, &paths.covers, &paths.incoming] {
+        for dir in [&paths.books, &paths.covers, &paths.thumbs, &paths.incoming] {
             std::fs::create_dir_all(dir)?;
         }
         Ok(paths)
@@ -45,6 +47,24 @@ impl LibraryPaths {
 
     pub fn cover_file(&self, name: &str) -> AppResult<PathBuf> {
         safe_join(&self.covers, name)
+    }
+
+    /// Thumbnail for a book's cover (always JPEG), keyed by book id and width.
+    pub fn thumb_file(&self, book_id: &str, width: u32) -> AppResult<PathBuf> {
+        let name = if width == crate::thumbs::THUMB_WIDTH {
+            format!("{book_id}.jpg")
+        } else {
+            format!("{book_id}-{width}.jpg")
+        };
+        safe_join(&self.thumbs, &name)
+    }
+
+    pub fn remove_thumb(&self, book_id: &str) {
+        for width in [crate::thumbs::THUMB_WIDTH, crate::thumbs::THUMB_WIDTH_SMALL] {
+            if let Ok(p) = self.thumb_file(book_id, width) {
+                let _ = std::fs::remove_file(p);
+            }
+        }
     }
 }
 
@@ -99,6 +119,7 @@ mod tests {
             db: "x".into(),
             books: "/lib/books".into(),
             covers: "/lib/covers".into(),
+            thumbs: "/lib/covers/thumbs".into(),
             incoming: "/lib/incoming".into(),
         };
         assert!(p.book_file("abc.epub").is_ok());

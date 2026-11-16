@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { AnimatePresence, motion, MotionConfig } from "motion/react";
+import { AnimatePresence, LazyMotion, m, MotionConfig } from "motion/react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { events } from "./lib/api";
 import { page, SECTION_ORDER } from "./lib/motion";
@@ -64,11 +64,14 @@ export default function App() {
   }, []);
 
   return (
+    // Motion's animation engine loads as a separate chunk after first paint (`m` components
+    // render immediately and start animating once it arrives). `strict` keeps it that way.
+    <LazyMotion features={loadMotionFeatures} strict>
     <MotionConfig reducedMotion="user">
       <div className={styles.shell} inert={view.kind === "reader"}>
         <Header />
         {/* A red hairline sweeps under the header on every section change. */}
-        <motion.div
+        <m.div
           key={`sweep-${section}`}
           className={styles.sweep}
           style={{ originX: direction >= 0 ? 0 : 1 }}
@@ -78,7 +81,7 @@ export default function App() {
         <div className={styles.stage}>
           {/* popLayout: the old page leaves while the new one arrives (no blank gap). */}
           <AnimatePresence mode="popLayout" custom={direction} initial={false}>
-            <motion.div
+            <m.div
               key={section}
               className={styles.page}
               custom={direction}
@@ -88,7 +91,7 @@ export default function App() {
               exit="exit"
             >
               <Current />
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
         <AnimatePresence onExitComplete={() => useDiscover.getState().endMorph()}>
@@ -102,8 +105,11 @@ export default function App() {
       </AnimatePresence>
       <Toasts />
     </MotionConfig>
+    </LazyMotion>
   );
 }
+
+const loadMotionFeatures = () => import("./lib/motionFeatures").then((mod) => mod.default);
 
 /** +1 when moving right along 01→04, -1 when moving left. */
 function useDirection(section: Section): number {

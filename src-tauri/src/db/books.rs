@@ -142,6 +142,8 @@ fn fts_query(input: &str) -> Option<String> {
     (!terms.is_empty()).then(|| terms.join(" "))
 }
 
+/// Lists books for grids. Descriptions are omitted (they can be long and grids
+/// never show them); use [`get`] for a single book's full record.
 pub fn list(conn: &Connection, query: &BookQuery) -> AppResult<Vec<Book>> {
     let mut sql = format!("{SELECT_BOOK} WHERE 1 = 1");
     let mut args: Vec<String> = Vec::new();
@@ -172,10 +174,18 @@ pub fn list(conn: &Connection, query: &BookQuery) -> AppResult<Vec<Book>> {
         }
         SortKey::LastRead => " ORDER BY p.updated_at IS NULL, p.updated_at DESC, b.added_at DESC",
     });
+    if let Some(limit) = query.limit {
+        sql.push_str(" LIMIT ?");
+        args.push(limit.to_string());
+    }
 
     let mut stmt = conn.prepare(&sql)?;
     let books = stmt
-        .query_map(params_from_iter(args.iter()), map_book)?
+        .query_map(params_from_iter(args.iter()), |row| {
+            let mut book = map_book(row)?;
+            book.description = None;
+            Ok(book)
+        })?
         .collect::<Result<Vec<_>, _>>()?;
     Ok(books)
 }
@@ -184,6 +194,25 @@ pub fn get(conn: &Connection, id: &str) -> AppResult<Book> {
     conn.query_row(&format!("{SELECT_BOOK} WHERE b.id = ?"), [id], map_book)
         .optional()?
         .ok_or_else(|| AppError::NotFound(format!("book {id}")))
+}
+
+pub fn get_locations(conn: &Connection, id: &str, chars_per: u32) -> AppResult<Option<String>> {
+    Ok(conn
+        .query_row(
+            "SELECT data FROM book_locations WHERE book_id = ? AND chars_per = ?",
+            params![id, chars_per],
+            |r| r.get(0),
+        )
+        .optional()?)
+}
+
+pub fn save_locations(conn: &Connection, id: &str, chars_per: u32, data: &str) -> AppResult<()> {
+    conn.execute(
+        "INSERT INTO book_locations (book_id, chars_per, data) VALUES (?1, ?2, ?3)
+         ON CONFLICT (book_id) DO UPDATE SET chars_per = excluded.chars_per, data = excluded.data",
+        params![id, chars_per, data],
+    )?;
+    Ok(())
 }
 
 pub fn find_by_hash(conn: &Connection, hash: &str) -> AppResult<Option<String>> {
@@ -440,6 +469,15 @@ mod tests {
 
         save_progress(&conn, "a", "epubcfi(/6/4)", 0.5).unwrap();
         set_favorite(&conn, "b", true).unwrap();
+        let limited = list(&conn, &BookQuery { limit: Some(1), ..Default::default() }).unwrap();
+        assert_eq!(limited.len(), 1);
+        assert!(limited[0].description.is_none(), "list omits descriptions");
+        assert!(get(&conn, "a").unwrap().description.is_some());
+
+        save_locations(&conn, "a", 1600, "[\"epubcfi(/6/2)\"]").unwrap();
+        assert!(get_locations(&conn, "a", 1600).unwrap().is_some());
+        assert!(get_locations(&conn, "a", 800).unwrap().is_none(), "different granularity is a miss");
+
         let s = stats(&conn).unwrap();
         assert_eq!((s.total, s.reading, s.favorites, s.finished, s.authors), (2, 1, 1, 0, 2));
         assert_eq!((get(&conn, "a").unwrap().volume, get(&conn, "b").unwrap().volume), (1, 2));

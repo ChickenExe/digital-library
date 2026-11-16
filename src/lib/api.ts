@@ -43,6 +43,9 @@ export const api = {
   saveCover: (id: string, bytes: Uint8Array) =>
     invoke<void>("save_cover", bytes, { headers: { "x-book-id": id } }),
   markCoverMissing: (id: string) => invoke<void>("mark_cover_missing", { id }),
+  getLocations: (id: string, charsPer: number) => invoke<string | null>("get_locations", { id, charsPer }),
+  saveLocations: (id: string, charsPer: number, data: string) =>
+    invoke<void>("save_locations", { id, charsPer, data }),
 
   // Discover
   catalogStatus: () => invoke<CatalogStatus>("catalog_status"),
@@ -69,8 +72,11 @@ export const events = {
 /** URL of the book file, served by the `book://` protocol (http://book.localhost on Windows). */
 export const bookUrl = (id: string) => convertFileSrc(id, "book");
 
+/** Covers are served as thumbnails sized for this screen's pixel density. */
+const THUMB_WIDTH = window.devicePixelRatio > 1.34 ? 360 : 240;
+
 export const coverUrl = (book: Pick<Book, "id" | "coverVersion">) =>
-  `${convertFileSrc(book.id, "cover")}?v=${book.coverVersion}`;
+  `${convertFileSrc(book.id, "cover")}?v=${book.coverVersion}&w=${THUMB_WIDTH}`;
 
 export async function fetchBookBytes(id: string): Promise<ArrayBuffer> {
   const res = await fetch(bookUrl(id));

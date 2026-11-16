@@ -1,4 +1,4 @@
 .number { display: inline-flex; }
 /* Clip below the baseline only, so digits rise out of the line like a mask. */
 .slot { position: relative; display: inline-block; clip-path: inset(-0.2em -0.1em 0 -0.1em); }
-.digit { display: inline-block; will-change: transform; }
+.digit { display: inline-block; }

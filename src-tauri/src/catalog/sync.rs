@@ -100,10 +100,18 @@ async fn run(app: &AppHandle, force: bool) -> AppResult<()> {
         });
         let worker = app.clone();
         let entries = tauri::async_runtime::spawn_blocking(move || -> AppResult<u32> {
-            let records = gutenberg::parse_catalog(GzDecoder::new(&bytes[..]))?;
             let state = worker.state::<CatalogState>();
             let mut conn = state.conn()?;
-            store::replace_catalog(&mut conn, PROVIDER, &records)?;
+            // Decompress → parse → insert as one stream: peak memory stays flat.
+            store::replace_catalog_with(&mut conn, PROVIDER, |emit| {
+                let mut failed = None;
+                gutenberg::for_each_record(GzDecoder::new(&bytes[..]), |r| {
+                    if failed.is_none() {
+                        failed = emit(&r).err();
+                    }
+                })?;
+                failed.map_or(Ok(()), Err)
+            })?;
             store::count(&conn)
         })
         .await

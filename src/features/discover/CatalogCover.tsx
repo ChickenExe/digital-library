@@ -28,6 +28,7 @@ export function CatalogCover({ entry, size = "md" }: { entry: CatalogEntry; size
           }}
           alt=""
           loading="lazy"
+          decoding="async"
           draggable={false}
           className={styles.img}
           style={{ opacity: state === "ok" ? 1 : 0 }}

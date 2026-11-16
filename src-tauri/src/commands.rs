@@ -62,6 +62,7 @@ pub fn delete_book(app: AppHandle, state: State<'_, AppState>, id: String) -> Ap
     if let Some(cover) = files.cover_file {
         let _ = std::fs::remove_file(state.paths.cover_file(&cover)?);
     }
+    state.paths.remove_thumb(&id);
     let _ = app.emit(LIBRARY_CHANGED, ());
     Ok(())
 }
@@ -107,6 +108,7 @@ pub fn save_cover(app: AppHandle, state: State<'_, AppState>, request: Request<'
     let previous = books::cover_file(&conn, &id)?;
     let name = format!("{id}.{}", image_extension(bytes, None));
     std::fs::write(state.paths.cover_file(&name)?, bytes)?;
+    state.paths.remove_thumb(&id); // regenerated lazily from the new cover
     books::set_cover(&conn, &id, Some(&name))?;
     if let Some(old) = previous.filter(|old| old != &name) {
         let _ = std::fs::remove_file(state.paths.cover_file(&old)?);
@@ -118,5 +120,20 @@ pub fn save_cover(app: AppHandle, state: State<'_, AppState>, request: Request<'
 /// Called when the frontend could not render a cover either; stops retrying.
 #[tauri::command(async)]
 pub fn mark_cover_missing(state: State<'_, AppState>, id: String) -> AppResult<()> {
+    state.paths.remove_thumb(&id);
     books::set_cover(&*state.conn()?, &id, None)
+}
+
+/// Cached epub.js location map for a book, if one was saved at this granularity.
+#[tauri::command(async)]
+pub fn get_locations(state: State<'_, AppState>, id: String, chars_per: u32) -> AppResult<Option<String>> {
+    books::get_locations(&*state.conn()?, &id, chars_per)
+}
+
+#[tauri::command(async)]
+pub fn save_locations(state: State<'_, AppState>, id: String, chars_per: u32, data: String) -> AppResult<()> {
+    if data.len() > 4 * 1024 * 1024 {
+        return Err(AppError::Invalid("location map too large".into()));
+    }
+    books::save_locations(&*state.conn()?, &id, chars_per, &data)
 }

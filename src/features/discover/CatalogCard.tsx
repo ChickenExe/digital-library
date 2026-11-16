@@ -12,6 +12,9 @@ type Props = {
   morphKey?: string;
 };
 
+/** Height of a card minus its 2:3 cover (label row + title + author). */
+export const CATALOG_CARD_CHROME = 84;
+
 /** A catalog listing card. */
 export function CatalogCard({ entry, label, morphKey }: Props) {
   const openListing = useDiscover((s) => s.openListing);

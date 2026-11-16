@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import type { CatalogRow } from "../../bindings/CatalogRow";
 import { debounce, pad2 } from "../../lib/format";
 import { rise, stagger, tween } from "../../lib/motion";
 import { Scramble } from "../../components/motion/Scramble";
 import { useDiscover } from "../../store/discover";
-import { CatalogCard } from "./CatalogCard";
+import { CatalogCard, CATALOG_CARD_CHROME } from "./CatalogCard";
+import { VirtualGrid } from "../../components/VirtualGrid";
 import { Spotlight } from "./Spotlight";
 import styles from "./DiscoverView.module.css";
 
@@ -51,14 +52,14 @@ export function DiscoverView() {
 /** Swaps between front page, results and setup with a quick crossfade + lift. */
 function Fade({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
+    <m.div
       className={styles.fade}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0, transition: tween(0.36) }}
       exit={{ opacity: 0, transition: { duration: 0.12 } }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -66,13 +67,13 @@ function FrontPage() {
   const rows = useDiscover((s) => s.rows);
   const scroller = useRef<HTMLDivElement>(null);
   return (
-    <motion.div ref={scroller} className={styles.scroll}>
+    <m.div ref={scroller} className={styles.scroll}>
       {rows[0]?.entries[0] && <Spotlight entry={rows[0].entries[0]} />}
       {rows.map((row, i) => (
         <ShelfRow key={row.id} row={row} index={i + 1} ranked={i === 0} root={scroller} />
       ))}
       <p className={`${styles.credit} mono`}>Free public-domain books from Project Gutenberg · More stores coming soon</p>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -139,14 +140,14 @@ function ShelfRow({ row, index, ranked, root }: RowProps) {
   const scroll = (dir: 1 | -1) =>
     track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.85, behavior: "smooth" });
   return (
-    <motion.section
+    <m.section
       className={styles.row}
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, root, amount: 0.25 }}
       variants={stagger(0.035)}
     >
-      <motion.div className={styles.rowHeader} variants={rise}>
+      <m.div className={styles.rowHeader} variants={rise}>
         <div>
           <div className="mono" style={{ color: "var(--color-text-muted)" }}>
             2.{index}
@@ -166,15 +167,15 @@ function ShelfRow({ row, index, ranked, root }: RowProps) {
             →
           </button>
         </div>
-      </motion.div>
-      <motion.div ref={track} className={styles.track} variants={stagger(0.035, 0.05)}>
+      </m.div>
+      <m.div ref={track} className={styles.track} variants={stagger(0.035, 0.05)}>
         {row.entries.map((e, i) => (
-          <motion.div key={e.id} className={styles.trackItem} variants={rise}>
+          <m.div key={e.id} className={styles.trackItem} variants={rise}>
             <CatalogCard entry={e} label={ranked ? `#${pad2(i + 1)}` : undefined} morphKey={`${row.id}:${e.id}`} />
-          </motion.div>
+          </m.div>
         ))}
-      </motion.div>
-    </motion.section>
+      </m.div>
+    </m.section>
   );
 }
 
@@ -183,34 +184,28 @@ function BrowseResults() {
   const results = useDiscover((s) => s.results);
   const total = useDiscover((s) => s.total);
   const loadMore = useDiscover((s) => s.loadMore);
-  const sentinel = useRef<HTMLDivElement>(null);
 
-  // Infinite scroll.
-  useEffect(() => {
-    const el = sentinel.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && void loadMore(), { rootMargin: "600px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [loadMore, results.length]);
-
+  // Windowed: infinite scroll can accumulate thousands of results without
+  // thousands of DOM nodes (or decoded covers) staying alive.
   return (
-    <motion.div className={styles.scroll}>
-      <div className={styles.browseHeader}>
-        <div className="mono" style={{ color: "var(--color-text-muted)" }}>
-          {total.toLocaleString()} books
-        </div>
-        <h2>{browse.title}</h2>
-      </div>
-      <div className={styles.grid}>
-        {results.map((e, i) => (
-          <div key={e.id} className="rise-in" style={{ "--i": i % 48 } as React.CSSProperties}>
-            <CatalogCard entry={e} morphKey={`browse:${e.id}`} />
+    <VirtualGrid
+      items={results}
+      getKey={(e) => e.id}
+      render={(e) => <CatalogCard entry={e} morphKey={`browse:${e.id}`} />}
+      minColumnWidth={132}
+      itemHeight={(w) => w * 1.5 + CATALOG_CARD_CHROME}
+      gap={{ row: 32, column: 24 }}
+      padding={{ x: 48, top: 0, bottom: 48 }}
+      onEndReached={loadMore}
+      header={
+        <div className={styles.browseHeader}>
+          <div className="mono" style={{ color: "var(--color-text-muted)" }}>
+            {total.toLocaleString()} books
           </div>
-        ))}
-      </div>
-      <div ref={sentinel} />
-    </motion.div>
+          <h2>{browse.title}</h2>
+        </div>
+      }
+    />
   );
 }
 

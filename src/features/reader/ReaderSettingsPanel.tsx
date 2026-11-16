@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import type { BookFormat } from "../../bindings/BookFormat";
 import { EASE, SPRING } from "../../lib/motion";
 import {
@@ -24,14 +24,14 @@ export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; o
 
   return (
     <>
-      <motion.div
+      <m.div
         className={styles.scrim}
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       />
-      <motion.div
+      <m.div
         className={styles.panel}
         role="dialog"
         aria-label="Reading settings"
@@ -123,7 +123,7 @@ export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; o
             />
           </Section>
         )}
-      </motion.div>
+      </m.div>
     </>
   );
 }

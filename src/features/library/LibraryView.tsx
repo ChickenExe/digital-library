@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import type { BookFormat } from "../../bindings/BookFormat";
 import type { Shelf } from "../../bindings/Shelf";
 import type { SortKey } from "../../bindings/SortKey";
@@ -8,7 +8,11 @@ import { EASE, SPRING } from "../../lib/motion";
 import { MaskNumber } from "../../components/motion/MaskNumber";
 import { Scramble } from "../../components/motion/Scramble";
 import { useLibrary } from "../../store/library";
-import { BookCard } from "./BookCard";
+import { BookCard, BOOK_CARD_CHROME } from "./BookCard";
+import { VirtualGrid } from "../../components/VirtualGrid";
+
+/** Up to this many books, filtering animates the grid; beyond it, the grid is virtualized. */
+const ANIMATED_GRID_MAX = 150;
 import styles from "./LibraryView.module.css";
 
 const SHELVES: { id: Shelf; label: string; count: (s: ReturnType<typeof useStats>) => number }[] = [
@@ -87,7 +91,7 @@ export function LibraryView() {
               className={query.shelf === s.id ? styles.on : ""}
               onClick={() => setQuery({ shelf: s.id })}
             >
-              {query.shelf === s.id && <motion.span layoutId="shelf-pill" className={styles.pill} transition={SPRING.pill} />}
+              {query.shelf === s.id && <m.span layoutId="shelf-pill" className={styles.pill} transition={SPRING.pill} />}
               <span className={styles.tabLabel}>
                 <b>{String(i + 1).padStart(2, "0")}</b>
                 {s.label}
@@ -102,7 +106,7 @@ export function LibraryView() {
               className={query.format === f.id ? styles.on : ""}
               onClick={() => setQuery({ format: f.id })}
             >
-              {query.format === f.id && <motion.span layoutId="format-pill" className={styles.pill} transition={SPRING.pill} />}
+              {query.format === f.id && <m.span layoutId="format-pill" className={styles.pill} transition={SPRING.pill} />}
               <span className={styles.tabLabel}>{f.label}</span>
             </button>
           ))}
@@ -111,12 +115,23 @@ export function LibraryView() {
 
       {loaded && books.length === 0 ? (
         <EmptyState filtered={stats.total > 0 || !!query.search} />
+      ) : books.length > ANIMATED_GRID_MAX ? (
+        // Large collections: windowed grid. Only visible rows exist, so memory stays flat.
+        <VirtualGrid
+          items={books}
+          getKey={(b) => b.id}
+          render={(b) => <BookCard book={b} />}
+          minColumnWidth={132}
+          itemHeight={(w) => w * 1.5 + BOOK_CARD_CHROME}
+          gap={{ row: 32, column: 24 }}
+          padding={{ x: 48, top: 32, bottom: 48 }}
+        />
       ) : (
-        <motion.div className={styles.grid} layoutScroll>
+        <m.div className={styles.grid} layoutScroll>
           {/* Filtering and sorting re-flow the grid: survivors glide, leavers shrink away. */}
           <AnimatePresence mode="popLayout" initial={true}>
             {books.map((b, i) => (
-              <motion.div
+              <m.div
                 key={b.id}
                 layout="position"
                 initial={{ opacity: 0, y: 16 }}
@@ -125,10 +140,10 @@ export function LibraryView() {
                 transition={SPRING.panel}
               >
                 <BookCard book={b} />
-              </motion.div>
+              </m.div>
             ))}
           </AnimatePresence>
-        </motion.div>
+        </m.div>
       )}
     </main>
   );

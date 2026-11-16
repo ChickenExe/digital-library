@@ -1,4 +1,4 @@
-.card { position: relative; display: flex; flex-direction: column; min-width: 0; }
+.card { position: relative; display: flex; flex-direction: column; min-width: 0; height: 100%; }
 .no { display: flex; align-items: center; gap: 6px; color: var(--color-text-muted); font-size: 10.5px; margin-bottom: 8px; }
 .reading { width: 7px; height: 7px; border-radius: 50%; background: var(--color-red); margin-left: auto; }
 .fav { color: var(--color-red); margin-left: auto; }

@@ -1,0 +1,4 @@
+.scroller { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.grid { position: relative; }
+.canvas { position: absolute; left: 0; right: 0; }
+.cell { position: absolute; top: 0; left: 0; }

@@ -14,12 +14,13 @@ export function useHomeData(): HomeData | null {
   const [data, setData] = useState<HomeData | null>(null);
 
   const load = useCallback(async () => {
+    // Only fetch what Home shows, not the whole library.
     const [latest, reading, sets] = await Promise.all([
-      api.listBooks({ shelf: "all", sort: "recent" }),
-      api.listBooks({ shelf: "reading", sort: "lastRead" }),
+      api.listBooks({ shelf: "all", sort: "recent", limit: 7 }),
+      api.listBooks({ shelf: "reading", sort: "lastRead", limit: 1 }),
       api.collectionSets(),
     ]);
-    setData({ latest: latest.slice(0, 7), readingNow: reading[0] ?? null, sets });
+    setData({ latest, readingNow: reading[0] ?? null, sets });
   }, []);
 
   useEffect(() => {

@@ -6,6 +6,9 @@ import { authorLine, hueFor, percentLabel, volumeLabel } from "../../lib/format"
 import { useLibrary } from "../../store/library";
 import styles from "./BookCard.module.css";
 
+/** Height of everything in a card except the 2:3 cover (number row + title + author + progress). */
+export const BOOK_CARD_CHROME = 96;
+
 /** A volume in the collection: number, cover, status. */
 export function BookCard({ book }: { book: Book }) {
   const openBook = useLibrary((s) => s.openBook);
@@ -76,6 +79,7 @@ function Cover({ book }: { book: Book }) {
         src={coverUrl(book)}
         alt=""
         loading="lazy"
+        decoding="async"
         draggable={false}
         onError={() => setFailed(true)}
       />

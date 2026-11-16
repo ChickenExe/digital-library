@@ -16,6 +16,7 @@ pub const LIBRARY_MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0001_init.sql"),
     include_str!("../../migrations/0002_book_source.sql"),
     include_str!("../../migrations/0003_volume_numbers.sql"),
+    include_str!("../../migrations/0004_locations_cache.sql"),
 ];
 
 pub fn open(path: &Path, migrations: &[&str]) -> AppResult<Connection> {

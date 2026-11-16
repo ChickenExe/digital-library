@@ -123,6 +123,10 @@ pub fn import_file(
                 let path = paths.cover_file(&name)?;
                 std::fs::write(&path, &cover.bytes)?;
                 written.push(path);
+                // Thumbnail now, while the bytes are in memory (grids only ever load these).
+                let thumb = paths.thumb_file(&id, crate::thumbs::THUMB_WIDTH)?;
+                crate::thumbs::write_for(&cover.bytes, &thumb);
+                written.push(thumb);
                 (Some(name), CoverState::Present)
             }
             // PDFs get a first-page thumbnail rendered by the frontend.

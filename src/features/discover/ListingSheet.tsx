@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion, usePresence } from "motion/react";
+import { m, usePresence } from "motion/react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { authorLine } from "../../lib/format";
 import { EASE, prefersReducedMotion, SPRING } from "../../lib/motion";
@@ -44,32 +44,32 @@ export function ListingSheet() {
 
   return (
     <>
-      <motion.div
+      <m.div
         className={styles.scrim}
         onClick={close}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1, transition: { duration: 0.25 } }}
         exit={{ opacity: 0, transition: { duration: 0.3, delay: 0.12 } }}
       />
-      <motion.div
+      <m.div
         className={styles.panel}
         initial={{ x: "100%" }}
         animate={{ x: 0, transition: SPRING.panel }}
         exit={{ x: "100%", transition: { duration: 0.32, ease: EASE.in, delay: 0.1 } }}
       />
       <aside className={styles.sheet} role="dialog" aria-label={entry.title}>
-        <motion.div className={`${styles.top} mono`} exit={fadeOut}>
+        <m.div className={`${styles.top} mono`} exit={fadeOut}>
           <span>2.x — Listing</span>
           <button onClick={close} aria-label="Close">
             Close ✕
           </button>
-        </motion.div>
+        </m.div>
 
         <div className={styles.hero}>
           <FlipCover from={open.from}>
             <CatalogCover entry={entry} size="lg" />
           </FlipCover>
-          <motion.div
+          <m.div
             className={`${styles.heroText} rise-in`}
             style={{ "--rise-delay": "140ms" } as React.CSSProperties}
             exit={fadeOut}
@@ -79,10 +79,10 @@ export function ListingSheet() {
             <div className={styles.actions}>
               <GetButton entry={entry} large />
             </div>
-          </motion.div>
+          </m.div>
         </div>
 
-        <motion.div exit={fadeOut}>
+        <m.div exit={fadeOut}>
           <dl
             className={`${styles.facts} draw-rule`}
             style={{ "--rule-color": "var(--color-ink)", "--rule-delay": "200ms" } as React.CSSProperties}
@@ -131,7 +131,7 @@ export function ListingSheet() {
               View on Project Gutenberg ↗
             </button>
           )}
-        </motion.div>
+        </m.div>
       </aside>
     </>
   );

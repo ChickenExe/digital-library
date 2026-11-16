@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import type { Book } from "../../bindings/Book";
 import { api, errorMessage } from "../../lib/api";
 import { authorLine, debounce } from "../../lib/format";
@@ -101,7 +101,7 @@ export function ReaderView({ bookId, origin }: { bookId: string; origin: Origin 
   const timeLeft = info.minutesLeft !== undefined ? formatMinutes(info.minutesLeft) : null;
 
   return (
-    <motion.div
+    <m.div
       // The reader opens like a window out of the cover you clicked, and closes back into it.
       initial={{ clipPath: insetFor(origin, 4), opacity: origin ? 1 : 0 }}
       animate={{
@@ -174,7 +174,7 @@ export function ReaderView({ bookId, origin }: { bookId: string; origin: Origin 
       <div className={styles.progress}>
         <i style={{ width: `${percent * 100}%` }} />
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 

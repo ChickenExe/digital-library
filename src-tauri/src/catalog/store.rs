@@ -57,7 +57,26 @@ pub fn set_sync_state(
 
 /// Bulk upsert of a provider's full catalog, then rebuilds the search index.
 /// Upserting (rather than delete + insert) keeps cached details and rowids.
-pub fn replace_catalog(conn: &mut Connection, provider: &str, records: &[CatalogRecord]) -> AppResult<()> {
+#[cfg(test)]
+pub fn replace_catalog<'a>(
+    conn: &mut Connection,
+    provider: &str,
+    records: impl IntoIterator<Item = &'a CatalogRecord>,
+) -> AppResult<()> {
+    replace_catalog_with(conn, provider, |emit| {
+        for r in records {
+            emit(r)?;
+        }
+        Ok(())
+    })
+}
+
+/// Bulk upsert where records are pushed by `source` (lets callers stream them).
+pub fn replace_catalog_with(
+    conn: &mut Connection,
+    provider: &str,
+    source: impl FnOnce(&mut dyn FnMut(&CatalogRecord) -> AppResult<()>) -> AppResult<()>,
+) -> AppResult<()> {
     let tx = conn.transaction()?;
     tx.execute(
         "DELETE FROM entry_categories WHERE entry_rowid IN (SELECT rowid FROM entries WHERE provider = ?)",
@@ -74,7 +93,7 @@ pub fn replace_catalog(conn: &mut Connection, provider: &str, records: &[Catalog
         )?;
         let mut categorize =
             tx.prepare("INSERT OR IGNORE INTO entry_categories (category, entry_rowid) VALUES (?, ?)")?;
-        for r in records {
+        source(&mut |r: &CatalogRecord| {
             let rowid: i64 = upsert.query_row(
                 params![
                     provider,
@@ -91,9 +110,11 @@ pub fn replace_catalog(conn: &mut Connection, provider: &str, records: &[Catalog
             for c in &r.categories {
                 categorize.execute(params![c, rowid])?;
             }
-        }
+            Ok(())
+        })?;
     }
     tx.execute("INSERT INTO entries_fts (entries_fts) VALUES ('rebuild')", [])?;
+    tx.execute("INSERT INTO entries_fts (entries_fts) VALUES ('optimize')", [])?;
     tx.commit()?;
     Ok(())
 }
@@ -271,7 +292,7 @@ mod tests {
             rec("84", "Frankenstein", "Mary Shelley", &["Novels", "Science-Fiction & Fantasy"]),
             rec("200", "Les Misérables", "Victor Hugo", &["Novels"]),
         ];
-        replace_catalog(&mut conn, "gutenberg", &records).unwrap();
+        replace_catalog(&mut conn, "gutenberg", records.iter()).unwrap();
         assert_eq!(count(&conn).unwrap(), 4);
 
         set_popularity(&mut conn, "gutenberg", &["84".into(), "1342".into()]).unwrap();
@@ -297,7 +318,7 @@ mod tests {
 
         // Re-sync keeps cached details.
         save_detail(&conn, "gutenberg", "1342", &Detail { summary: Some("S".into()), downloads: Some(5), reading_level: None }, 1).unwrap();
-        replace_catalog(&mut conn, "gutenberg", &records).unwrap();
+        replace_catalog(&mut conn, "gutenberg", records.iter()).unwrap();
         let d = get(&conn, "gutenberg", "1342").unwrap().unwrap();
         assert_eq!(d.detail.summary.as_deref(), Some("S"));
         assert_eq!(search(&conn, &CatalogQuery { search: Some("pride".into()), ..Default::default() }).unwrap().total, 2);

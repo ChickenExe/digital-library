@@ -20,7 +20,7 @@
 .fade { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .scroll { flex: 1; overflow-y: auto; padding: var(--space-8) 0 var(--space-12); }
 
-.row { margin-bottom: var(--space-10); }
+.row { margin-bottom: var(--space-10); content-visibility: auto; contain-intrinsic-size: auto 340px; }
 .rowHeader {
   display: flex;
   align-items: flex-end;
@@ -57,7 +57,7 @@
 .track::-webkit-scrollbar { display: none; }
 .trackItem { scroll-snap-align: start; min-width: 0; }
 
-.browseHeader { padding: 0 var(--space-12) var(--space-6); }
+.browseHeader { padding: var(--space-8) var(--space-12) var(--space-6); }
 .browseHeader h2 { margin: 6px 0 0; font-size: 56px; font-weight: 900; font-stretch: 112%; letter-spacing: -0.04em; line-height: 0.95; text-transform: uppercase; }
 .grid {
   display: grid;
