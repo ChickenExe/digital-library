@@ -3,7 +3,7 @@ import type { EditionSummary } from "../../bindings/EditionSummary";
 import { api, events } from "../../lib/api";
 import { debounce } from "../../lib/format";
 import { useLibrary } from "../../store/library";
-import { OrthodoxCross } from "./OrthodoxCross";
+import { ART } from "./orthodoxArt";
 import styles from "./EditionTile.module.css";
 
 /** Collected editions, kept current as books are collected and read. */
@@ -33,8 +33,8 @@ export function EditionTile({ edition, wide }: { edition: EditionSummary; wide?:
       data-edition-theme={edition.theme}
       onClick={() => openEdition(edition.id, edition.theme)}
     >
-      <div className={styles.cross} aria-hidden>
-        <OrthodoxCross />
+      <div className={styles.art} aria-hidden>
+        <img src={ART.pantocrator.src} alt="" loading="lazy" draggable={false} />
       </div>
       <div className={styles.body}>
         <div className={`mono ${styles.kicker}`}>Collected edition · {edition.subtitle}</div>

@@ -126,7 +126,7 @@ Some books and series get a dedicated, themed home: their own structure, palette
 - **Theme** (`features/editions/themes.css`). A palette applied as scoped CSS tokens via `data-edition-theme`. Inside an edition the whole shell, header included, takes the palette; outside, the edition's tile carries it as an object on any page. For Scripture: near-black and bone white at full contrast, with cinnabar used as liturgical books use red (rubrics, numerals, what's in progress).
 - **Reading.** Books opened from an edition use its reader palette for that session (Scripture → Vigil: black page, bone text, red rubric headings), without overwriting the reader's own preference.
 - **Interaction.** Every slot is a tablet that inverts from black to white once collected, so the page brightens as the canon fills. A canon strip at the top gives one square per book. "Collect the canon" downloads every available book in sequence, with a single progress readout.
-- **Adding an edition.** Add an `EditionDef` to `EDITIONS` (Rust), a palette block to `themes.css`, and a reader theme mapping in `themes.ts`. The page is shared; the hero art (here, the Orthodox cross) is the main per-edition component.
+- **Adding an edition.** Add an `EditionDef` to `EDITIONS` (Rust), a palette block to `themes.css`, and a reader theme mapping in `themes.ts`. The page is shared. Artwork is real, not drawn: public-domain or CC0 images with sources recorded in `src/assets/editions/<theme>/CREDITS.md`. For Scripture these are the 6th-century Sinai *Christ Pantocrator* (hero and tiles), Rublev's *Holy Trinity* ("From the Tradition"), and a CC0 three-bar cross used as a mask-tinted decal: canon strip, colophon, and the cinnabar stamp on books you've read.
 
 ## Performance and memory
 

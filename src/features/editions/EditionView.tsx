@@ -10,7 +10,7 @@ import { Scramble } from "../../components/motion/Scramble";
 import { MaskNumber } from "../../components/motion/MaskNumber";
 import { useDiscover } from "../../store/discover";
 import { useLibrary } from "../../store/library";
-import { OrthodoxCross } from "./OrthodoxCross";
+import { ART } from "./orthodoxArt";
 import { EDITION_THEMES } from "./themes";
 import styles from "./EditionView.module.css";
 
@@ -77,23 +77,42 @@ export default function EditionView({ id }: { id: string }) {
           </div>
         </div>
 
-        <div className={styles.crossWrap}>
-          <OrthodoxCross />
-        </div>
+        <figure className={styles.icon}>
+          <div className={styles.iconFrame}>
+            <img src={ART.pantocrator.src} alt={ART.pantocrator.title} draggable={false} />
+          </div>
+          <figcaption className="mono">
+            <span>{ART.pantocrator.title}</span>
+            {ART.pantocrator.caption}
+          </figcaption>
+        </figure>
       </section>
 
-      <CanonBar sections={canon} />
+      <div className={styles.canonRow}>
+        <img className={styles.canonCross} src={ART.cross} alt="" aria-hidden draggable={false} />
+        <CanonBar sections={canon} />
+      </div>
 
       {canon.map((s, i) => (
         <Section key={s.id} section={s} index={i} readerTheme={readerTheme} />
       ))}
       {tradition.map((s, i) => (
-        <Section key={s.id} section={s} index={canon.length + i} readerTheme={readerTheme} tradition />
+        <Section key={s.id} section={s} index={canon.length + i} readerTheme={readerTheme} tradition>
+          <figure className={styles.trinity}>
+            <img src={ART.trinity.src} alt={ART.trinity.title} loading="lazy" draggable={false} />
+            <figcaption className="mono">
+              <span>{ART.trinity.title}</span>
+              {ART.trinity.caption}
+            </figcaption>
+          </figure>
+        </Section>
       ))}
 
       <footer className={`${styles.colophon} mono`}>
+        <img className={styles.colophonCross} src={ART.cross} alt="" aria-hidden />
         Texts: the King James Version, and the Douay-Rheims (Challoner revision) for the deuterocanonical
-        books and the Greek additions to Esther and Daniel. Public domain, via Project Gutenberg.
+        books and the Greek additions to Esther and Daniel. Public domain, via Project Gutenberg. Icons: Christ
+        Pantocrator (Sinai, 6th c.) and Rublev’s Holy Trinity (c. 1411), public domain via Wikimedia Commons.
       </footer>
     </main>
   );
@@ -134,8 +153,17 @@ function CanonBar({ sections }: { sections: EditionSection[] }) {
   );
 }
 
-function Section(props: { section: EditionSection; index: number; readerTheme?: string; tradition?: boolean }) {
-  const { section, index, readerTheme, tradition } = props;
+type SectionProps = {
+  section: EditionSection;
+  index: number;
+  readerTheme?: string;
+  tradition?: boolean;
+  /** Shown beside the books (e.g. an icon for "From the Tradition"). */
+  children?: React.ReactNode;
+};
+
+function Section(props: SectionProps) {
+  const { section, index, readerTheme, tradition, children } = props;
   const ref = useRef<HTMLElement>(null);
   const [seen, setSeen] = useState(false);
   useEffect(() => {
@@ -163,10 +191,13 @@ function Section(props: { section: EditionSection; index: number; readerTheme?: 
           {section.items.length} {section.items.length === 1 ? "book" : tradition ? "works" : "books"}
         </div>
       </header>
-      <div className={`${styles.tablets} ${tradition ? styles.wide : ""}`}>
-        {section.items.map((item, i) => (
-          <Tablet key={item.no} item={item} i={i} readerTheme={readerTheme} />
-        ))}
+      <div className={children ? styles.withArt : undefined}>
+        {children}
+        <div className={`${styles.tablets} ${tradition ? styles.wide : ""}`}>
+          {section.items.map((item, i) => (
+            <Tablet key={item.no} item={item} i={i} readerTheme={readerTheme} />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -199,7 +230,8 @@ function Tablet({ item, i, readerTheme }: { item: EditionItem; i: number; reader
   return (
     <button
       className={`${styles.tablet} ${styles[state]}`}
-      style={{ "--i": i } as React.CSSProperties}
+      // The cross stamped on books you've read (see .finished::after).
+      style={{ "--i": i, "--cross": `url(${ART.cross})` } as React.CSSProperties}
       onClick={onClick}
       disabled={state === "missing" || downloading}
       aria-label={`${item.name}${state === "missing" ? " (not available)" : ""}`}
@@ -218,7 +250,7 @@ function Tablet({ item, i, readerTheme }: { item: EditionItem; i: number; reader
         {!downloading && state === "missing" && <span className={styles.note}>{item.note}</span>}
         {!downloading && state === "available" && <span>{item.note ?? "Collect · free"}</span>}
         {!downloading && state === "owned" && <span>{item.note ?? "Read →"}</span>}
-        {!downloading && state === "finished" && <span>✓ Read</span>}
+        {!downloading && state === "finished" && <span>Read</span>}
         {!downloading && state === "reading" && (
           <>
             <span className={styles.track}>
