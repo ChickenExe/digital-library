@@ -32,6 +32,12 @@ React/TypeScript UI), targeting **Windows** first.
 - Built-in readers: paginated EPUB (two-page spread) and continuous-scroll PDF
 - Reading position saved automatically and restored when you reopen a book
 
+## Download (Windows)
+
+Get the latest build from [Releases](https://github.com/ChickenExe/digital-library/releases): the `x64-setup.exe` installer is recommended, and there's also an `.msi` and a portable `.exe`. Builds aren't code-signed yet, so if Windows SmartScreen warns, choose **More info → Run anyway**.
+
+Releases are built on a Windows runner by `.github/workflows/release.yml`.
+
 ## Getting started
 
 Prerequisites: Node 20+, Rust (stable), and on Windows the

@@ -1,0 +1,81 @@
+name: Release (Windows)
+
+# Builds the Windows app and publishes a GitHub Release with:
+#   - Digital Library_<version>_x64-setup.exe   (NSIS installer, recommended)
+#   - Digital Library_<version>_x64_en-US.msi   (MSI installer)
+#   - DigitalLibrary-<version>-portable.exe     (single exe; needs the WebView2 runtime,
+#                                                which ships with Windows 10/11)
+#
+# Triggers:
+#   - pushing a version tag (v0.2.0, …)
+#   - running it manually (Actions → Release (Windows) → Run workflow)
+#   - a push whose commit message contains "[release]"
+on:
+  push:
+    tags: ["v*"]
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    if: >-
+      github.event_name != 'push' ||
+      startsWith(github.ref, 'refs/tags/v') ||
+      contains(github.event.head_commit.message, '[release]')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build and publish release
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Digital Library v__VERSION__
+          releaseBody: |
+            **Digital Library for Windows.** A collector's ebook library: free classics from Project Gutenberg,
+            your own EPUBs and PDFs, collected editions, and a calm reader.
+
+            **Download:** `…_x64-setup.exe` (recommended installer), `…_x64_en-US.msi`, or the portable `.exe`
+            (no install; needs the WebView2 runtime, included with Windows 10/11).
+
+            This is an early preview build and isn't code-signed yet, so Windows SmartScreen may warn:
+            choose **More info → Run anyway**.
+          releaseDraft: false
+          prerelease: true
+          releaseCommitish: ${{ github.sha }}
+
+      - name: Attach portable exe
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.tauri.outputs.appVersion }}
+        run: |
+          cp src-tauri/target/release/digital-library.exe "DigitalLibrary-${VERSION}-portable.exe"
+          gh release upload "v${VERSION}" "DigitalLibrary-${VERSION}-portable.exe" --clobber
