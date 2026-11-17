@@ -26,7 +26,7 @@ export function useEditionSummaries(): EditionSummary[] {
  */
 export function EditionTile({ edition, wide }: { edition: EditionSummary; wide?: boolean }) {
   const openEdition = useLibrary((s) => s.openEdition);
-  const pct = edition.available ? edition.owned / edition.available : 0;
+  const pct = edition.progress ?? 0;
   return (
     <button
       className={`${styles.tile} ${wide ? styles.wide : ""}`}
@@ -47,7 +47,7 @@ export function EditionTile({ edition, wide }: { edition: EditionSummary; wide?:
             <i style={{ width: `${pct * 100}%` }} />
           </span>
           <span className="mono">
-            {edition.owned}/{edition.available} collected
+            {edition.progress !== null ? `Continue · ${Math.round(pct * 100)}%` : "Read free · 2 translations"}
           </span>
         </div>
       </div>

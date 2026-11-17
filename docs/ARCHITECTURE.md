@@ -119,14 +119,15 @@ The readers are code-split. epub.js and pdf.js (~800 KB) load only when a book i
 
 ## Collected editions
 
-Some books and series get a dedicated, themed home: their own structure, palette, typography and reading theme. They use the same Index language (numbered sections, giant type, hairlines), re-voiced for the subject. The first is **Holy Scripture, in the order of the Orthodox canon**.
+Some books get their own designed showcase, with their own theme, artwork and reading palette. The first is the **Holy Bible**, in an Orthodox theme.
 
-- **Data** (`src-tauri/src/catalog/editions.rs`). An edition is sections of slots. Each slot points at a catalog volume, notes that it lives inside another volume (the Epistle of Jeremiah is Baruch 6), or records that no public-domain text exists (1 Esdras, 3 Maccabees). Ownership and progress come from the library, so collecting from anywhere fills the edition. Tests pin the canon: 49 Old Testament + 27 New Testament books, minor prophets before Isaiah, General Epistles before St Paul's, and no volume used twice by accident.
-- **Texts.** The KJV per book, plus the Douay-Rheims for the deuterocanonical books and for Esther and Daniel, whose Greek additions the Orthodox canon includes.
-- **Theme** (`features/editions/themes.css`). A palette applied as scoped CSS tokens via `data-edition-theme`. Inside an edition the whole shell, header included, takes the palette; outside, the edition's tile carries it as an object on any page. For Scripture: near-black and bone white at full contrast, with cinnabar used as liturgical books use red (rubrics, numerals, what's in progress).
-- **Reading.** Books opened from an edition use its reader palette for that session (Scripture → Vigil: black page, bone text, red rubric headings), without overwriting the reader's own preference.
-- **Interaction.** Every slot is a tablet that inverts from black to white once collected, so the page brightens as the canon fills. A canon strip at the top gives one square per book. "Collect the canon" downloads every available book in sequence, with a single progress readout.
-- **Adding an edition.** Add an `EditionDef` to `EDITIONS` (Rust), a palette block to `themes.css`, and a reader theme mapping in `themes.ts`. The page is shared. Artwork is real, not drawn: public-domain or CC0 images with sources recorded in `src/assets/editions/<theme>/CREDITS.md`. For Scripture these are the 6th-century Sinai *Christ Pantocrator* (hero and tiles), Rublev's *Holy Trinity* ("From the Tradition"), and a CC0 three-bar cross used as a mask-tinted decal: canon strip, colophon, and the cinnabar stamp on books you've read.
+- **Page** (`features/editions/EditionView.tsx`): the book is the hero, a perspective-tilted black leather cover with a bone-white three-bar cross. It sits centred on a dark stage, and real icons and crosses float around it at angles. Below the fold: a verse, a short text and the available translations.
+- **Parallax**: one `--scroll` / `--mx` / `--my` CSS variable write per frame. Each floating layer has a `--depth`, and its transform is pure CSS `calc()`, so everything moves on the compositor with no React re-renders. Nearer pieces move faster and are brighter. It respects reduced motion.
+- **Book**: a single tilted face with page edges drawn by stacked `box-shadow`s. It deliberately avoids nested `preserve-3d`, which WebKit misplaces inside transformed, clipped parents.
+- **Volumes** (`src-tauri/src/catalog/editions.rs`): an edition offers complete single volumes, here the KJV (66 books) and the Douay-Rheims (73, including the deuterocanonical books the Orthodox canon also reads). Moving between books (Genesis → Revelation) happens in the reader's **Contents** panel, which is available for any EPUB.
+- **Theme**: `themes.css` scopes the edition's palette onto the whole shell via `data-edition-theme`. Books opened from the edition use its reader palette for that session (Vigil: black page, bone text, red rubric headings).
+- **Artwork**: real public-domain and CC0 images, with sources in `src/assets/editions/<theme>/CREDITS.md`. For the Bible: the Sinai *Christ Pantocrator* (6th c.), the Sinai *St Nicholas* (13th c.), Rublev's *Holy Trinity* (c. 1411), the *Archangel Michael* (Constantinople, 14th c.; background cut away), and a CC0 three-bar cross.
+- **Adding an edition**: add an `EditionDef` (Rust), a palette in `themes.css`, a reader-theme mapping in `themes.ts`, and the art plus its `FLOATS` layout.
 
 ## Performance and memory
 

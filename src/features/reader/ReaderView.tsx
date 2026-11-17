@@ -6,6 +6,7 @@ import { authorLine, debounce } from "../../lib/format";
 import { EASE } from "../../lib/motion";
 import { useLibrary, type Origin } from "../../store/library";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
+import { ContentsPanel, type TocItem } from "./ContentsPanel";
 import { WindowControls } from "../shell/WindowControls";
 import { isThemeId, THEMES, useEffectiveTheme, useReaderSettings } from "./settings";
 import styles from "./ReaderView.module.css";
@@ -50,6 +51,9 @@ export function ReaderView({ bookId, origin, readerTheme }: Props) {
   const [info, setInfo] = useState<ReadingInfo>({});
   const [chrome, setChrome] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [contents, setContents] = useState<{ items: TocItem[]; go: (href: string) => void } | null>(null);
+  const [contentsOpen, setContentsOpen] = useState(false);
+  const onContents = useCallback((items: TocItem[], go: (href: string) => void) => setContents({ items, go }), []);
   // Load the (heavy) book engine only once the window has finished opening,
   // so parsing never steals frames from the expand animation.
   const [opened, setOpened] = useState(false);
@@ -99,14 +103,15 @@ export function ReaderView({ bookId, origin, readerTheme }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (settingsOpen) setSettingsOpen(false);
+      if (contentsOpen) setContentsOpen(false);
+      else if (settingsOpen) setSettingsOpen(false);
       else closeReader();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [closeReader, settingsOpen]);
+  }, [closeReader, settingsOpen, contentsOpen]);
 
-  const visible = chrome || settingsOpen;
+  const visible = chrome || settingsOpen || contentsOpen;
   const timeLeft = info.minutesLeft !== undefined ? formatMinutes(info.minutesLeft) : null;
 
   return (
@@ -147,16 +152,47 @@ export function ReaderView({ bookId, origin, readerTheme }: Props) {
           <span className={styles.title}>{book?.title ?? ""}</span>
           {book && <span className={styles.author}> · {authorLine(book)}</span>}
         </div>
-        <button
-          className={`${styles.barButton} ${settingsOpen ? styles.active : ""}`}
-          onClick={() => setSettingsOpen((o) => !o)}
-          aria-label="Reading settings"
-        >
-          Aa
-        </button>
+        <div className={styles.barTools}>
+          {contents && contents.items.length > 1 && (
+            <button
+              className={`${styles.barButton} ${contentsOpen ? styles.active : ""}`}
+              onClick={() => {
+                setSettingsOpen(false);
+                setContentsOpen((o) => !o);
+              }}
+              aria-label="Contents"
+            >
+              Contents
+            </button>
+          )}
+          <button
+            className={`${styles.barButton} ${settingsOpen ? styles.active : ""}`}
+            onClick={() => {
+              setContentsOpen(false);
+              setSettingsOpen((o) => !o);
+            }}
+            aria-label="Reading settings"
+          >
+            Aa
+          </button>
+        </div>
         <WindowControls className={styles.caption} />
       </header>
 
+      <AnimatePresence>
+        {contentsOpen && contents && (
+          <ContentsPanel
+            key="contents"
+            items={contents.items}
+            current={info.chapter}
+            onGo={(href) => {
+              contents.go(href);
+              setContentsOpen(false);
+            }}
+            onClose={() => setContentsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {settingsOpen && (
           <ReaderSettingsPanel
@@ -170,7 +206,7 @@ export function ReaderView({ bookId, origin, readerTheme }: Props) {
       <div className={styles.stage}>
         <Suspense fallback={null}>
           {opened && book?.format === "epub" && (
-            <EpubReader book={book} initialLocator={book.progress?.locator} onProgress={onProgress} />
+            <EpubReader book={book} initialLocator={book.progress?.locator} onProgress={onProgress} onContents={onContents} />
           )}
           {opened && book?.format === "pdf" && (
             <PdfReader book={book} initialLocator={book.progress?.locator} onProgress={onProgress} />

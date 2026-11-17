@@ -8,14 +8,24 @@ import type { ProgressHandler } from "./ReaderView";
 import { epubCss, useEffectiveTheme, useReaderSettings, WIDTHS } from "./settings";
 import styles from "./Reader.module.css";
 
-type Props = { book: Book; initialLocator?: string; onProgress: ProgressHandler };
+import type { TocItem } from "./ContentsPanel";
+
+type Props = {
+  book: Book;
+  initialLocator?: string;
+  onProgress: ProgressHandler;
+  /** Receives the book's table of contents and a function to jump to an entry. */
+  onContents?: (items: TocItem[], go: (href: string) => void) => void;
+};
 
 /** epub.js splits books into locations of this many characters. */
 const CHARS_PER_LOCATION = 1600;
 const CHARS_PER_WORD = 5.7;
 const WORDS_PER_MINUTE = 240;
 
-export function EpubReader({ book, initialLocator, onProgress }: Props) {
+export function EpubReader({ book, initialLocator, onProgress, onContents }: Props) {
+  const onContentsRef = useRef(onContents);
+  onContentsRef.current = onContents;
   const host = useRef<HTMLDivElement>(null);
   const rendition = useRef<Rendition | null>(null);
   const epubRef = useRef<EpubBook | null>(null);
@@ -90,6 +100,7 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
       // Chapter names + a location map (for percent and time left), computed after first paint.
       await epub.ready;
       toc = flatten(epub.navigation?.toc ?? []);
+      onContentsRef.current?.(withDepth(epub.navigation?.toc ?? []), (href) => void r.display(href));
       // Generating the map walks the whole book on the UI thread (seconds for long
       // books), so it's computed once and cached in the library database.
       const cached = await api.getLocations(book.id, CHARS_PER_LOCATION).catch(() => null);
@@ -185,6 +196,13 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
 function navigateKey(e: KeyboardEvent, turn: (dir: 1 | -1) => Promise<void>) {
   if (e.key === "ArrowLeft" || e.key === "PageUp") void turn(-1);
   if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") void turn(1);
+}
+
+function withDepth(items: NavItem[], depth = 0): TocItem[] {
+  return items.flatMap((i) => [
+    { label: i.label.trim(), href: i.href, depth },
+    ...withDepth(i.subitems ?? [], depth + 1),
+  ]);
 }
 
 function flatten(items: NavItem[]): NavItem[] {

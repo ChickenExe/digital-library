@@ -6,18 +6,6 @@ export type EditionSummary = { id: string,
  */
 theme: string, title: string, original: string, subtitle: string, 
 /**
- * Slots in the canon (excluding "From the Tradition").
+ * Furthest progress across the edition's volumes, if any has been read.
  */
-total: number, 
-/**
- * Slots that have a text in the catalog.
- */
-available: number, 
-/**
- * Slots whose text is in the library.
- */
-owned: number, 
-/**
- * Slots read to the end.
- */
-finished: number, };
+progress: number | null, };
