@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Book } from "../../bindings/Book";
 import { openPdf, renderPage, type OpenPdf, type PdfDocument } from "../../lib/pdf";
 import type { ProgressHandler } from "./ReaderView";
-import { THEMES, useReaderSettings, WIDTHS } from "./settings";
+import { THEMES, useEffectiveTheme, useReaderSettings, WIDTHS } from "./settings";
 import styles from "./Reader.module.css";
 
 type Props = { book: Book; initialLocator?: string; onProgress: ProgressHandler };
@@ -20,7 +20,7 @@ export function PdfReader({ book, initialLocator, onProgress }: Props) {
   const [doc, setDoc] = useState<PdfDocument | null>(null);
   const [aspect, setAspect] = useState(1.414);
   const widthSetting = useReaderSettings((s) => s.width);
-  const filter = useReaderSettings((s) => THEMES[s.theme].pdfFilter);
+  const filter = THEMES[useEffectiveTheme()].pdfFilter;
   const maxWidth = WIDTHS[widthSetting].px * PAGE_SCALE;
   const [width, setWidth] = useState(maxWidth);
   const [error, setError] = useState<string | null>(null);

@@ -1,0 +1,30 @@
+/*
+ * Edition palettes. Applied to the whole shell while an edition is open, so the
+ * header, pills and rules follow; scoped CSS variables mean no component needs
+ * to know which edition it's in.
+ */
+
+/* Orthodoxy: near-black and bone white at full contrast, with cinnabar used the
+   way liturgical books use red: for rubrics, numerals and what's in progress. */
+[data-edition-theme="orthodox"] {
+  color-scheme: dark;
+  --color-bg: #070707;
+  --color-paper: #111110;
+  --color-ink: #f4f0e6;
+  --color-ink-2: #d9d4c8;
+  --color-red: #d2452f;
+  --color-red-ink: #e25a42;
+  --color-text: #f4f0e6;
+  --color-text-muted: #9a958a;
+  --color-text-faint: #5d5a53;
+  --color-rule: rgba(244, 240, 230, 0.16);
+  --color-rule-strong: #f4f0e6;
+  --color-hover: rgba(244, 240, 230, 0.07);
+  --color-focus: #d2452f;
+  --color-scrollbar: rgba(244, 240, 230, 0.2);
+  --color-scrim: rgba(0, 0, 0, 0.6);
+  --rubric: #d2452f;
+  --font-liturgical: "Literata Variable", Georgia, serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}

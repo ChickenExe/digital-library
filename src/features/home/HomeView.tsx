@@ -8,11 +8,13 @@ import { hueFor, volumeLabel } from "../../lib/format";
 import { useDiscover } from "../../store/discover";
 import { useLibrary } from "../../store/library";
 import { TonightDeck } from "./TonightDeck";
+import { EditionTile, useEditionSummaries } from "../editions/EditionTile";
 import { pickNextSet, useHomeData } from "./useHomeData";
 import styles from "./HomeView.module.css";
 
 export function HomeView() {
   const data = useHomeData();
+  const editions = useEditionSummaries();
   const stats = useLibrary((s) => s.stats);
   const navigate = useLibrary((s) => s.navigate);
   const next = data ? pickNextSet(data.sets) : null;
@@ -70,6 +72,22 @@ export function HomeView() {
           <span>Collect them all</span>
         </div>
         <div className={styles.sets}>{data?.sets.map((s, i) => <SetRow key={s.id} set={s} row={i} />)}</div>
+
+        {editions.length > 0 && (
+          <>
+            <div className={`section-label mono ${styles.rule} draw-rule`} style={{ "--rule-delay": "420ms" } as React.CSSProperties}>
+              <span>
+                <b>2.4</b> — <Scramble text="Collected editions" delay={360} />
+              </span>
+              <span>Designed homes for great books</span>
+            </div>
+            <div className={`${styles.editions} rise-in`} style={{ "--rise-delay": "480ms" } as React.CSSProperties}>
+              {editions.map((e) => (
+                <EditionTile key={e.id} edition={e} />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       <section className={styles.right}>

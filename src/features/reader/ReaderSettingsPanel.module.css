@@ -14,7 +14,7 @@
 .section { margin-top: var(--space-4); }
 .label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--r-muted); margin-bottom: var(--space-2); }
 
-.themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.themes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .theme {
   height: 64px;
   border-radius: 12px;

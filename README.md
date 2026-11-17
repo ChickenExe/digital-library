@@ -11,6 +11,8 @@ React/TypeScript UI), targeting **Windows** first.
 
 - **Home:** your collection as identity, with a giant volume count, stats, an index of numbered volumes,
   **sets** to complete (the Austen Six, the Holmes canon…) and a "Tonight" card deck
+- **Collected editions:** designed homes for great books. First up, **Holy Scripture in the order of the
+  Orthodox canon**: 76 books in black, bone and cinnabar, collected one by one or all at once
 - **Light, dark and system themes**, and on Windows 11 a frameless window on Mica with Index-styled controls
 - **Fast with big libraries:** cover thumbnails, windowed grids and range-loaded PDFs (see the benchmarks in
   [Architecture](docs/ARCHITECTURE.md#performance-and-memory))

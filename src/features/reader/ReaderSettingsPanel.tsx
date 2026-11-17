@@ -7,6 +7,7 @@ import {
   SIZE_MAX,
   SIZE_MIN,
   THEMES,
+  useEffectiveTheme,
   useReaderSettings,
   WIDTHS,
   type FontId,
@@ -20,6 +21,7 @@ const LEADING_LABELS = ["Compact", "Comfortable", "Airy"];
 /** Reading comfort controls. EPUB gets everything; PDFs only theme and page size. */
 export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; onClose: () => void }) {
   const s = useReaderSettings();
+  const effective = useEffectiveTheme();
   const reflowable = format === "epub";
 
   return (
@@ -47,7 +49,7 @@ export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; o
               return (
                 <button
                   key={id}
-                  className={`${styles.theme} ${s.theme === id ? styles.on : ""}`}
+                  className={`${styles.theme} ${effective === id ? styles.on : ""}`}
                   style={{ background: t.bg, color: t.text }}
                   onClick={() => s.set({ theme: id })}
                 >

@@ -7,6 +7,7 @@ import { Scramble } from "../../components/motion/Scramble";
 import { useDiscover } from "../../store/discover";
 import { CatalogCard, CATALOG_CARD_CHROME } from "./CatalogCard";
 import { VirtualGrid } from "../../components/VirtualGrid";
+import { EditionTile, useEditionSummaries } from "../editions/EditionTile";
 import { Spotlight } from "./Spotlight";
 import styles from "./DiscoverView.module.css";
 
@@ -65,10 +66,16 @@ function Fade({ children }: { children: React.ReactNode }) {
 
 function FrontPage() {
   const rows = useDiscover((s) => s.rows);
+  const editions = useEditionSummaries();
   const scroller = useRef<HTMLDivElement>(null);
   return (
     <m.div ref={scroller} className={styles.scroll}>
       {rows[0]?.entries[0] && <Spotlight entry={rows[0].entries[0]} />}
+      {editions.map((e) => (
+        <div key={e.id} className={styles.editionBanner}>
+          <EditionTile edition={e} wide />
+        </div>
+      ))}
       {rows.map((row, i) => (
         <ShelfRow key={row.id} row={row} index={i + 1} ranked={i === 0} root={scroller} />
       ))}

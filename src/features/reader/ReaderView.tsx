@@ -7,7 +7,7 @@ import { EASE } from "../../lib/motion";
 import { useLibrary, type Origin } from "../../store/library";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 import { WindowControls } from "../shell/WindowControls";
-import { THEMES, useReaderSettings } from "./settings";
+import { isThemeId, THEMES, useEffectiveTheme, useReaderSettings } from "./settings";
 import styles from "./ReaderView.module.css";
 
 // Each reader pulls in a large rendering engine; load them on demand.
@@ -32,10 +32,18 @@ function insetFor(o: Origin | null, radius: number): string {
   return `inset(${o.top}px ${right}px ${bottom}px ${o.left}px round ${radius}px)`;
 }
 
-export function ReaderView({ bookId, origin }: { bookId: string; origin: Origin | null }) {
+type Props = { bookId: string; origin: Origin | null; readerTheme?: string };
+
+export function ReaderView({ bookId, origin, readerTheme }: Props) {
   const closeReader = useLibrary((s) => s.closeReader);
   const toast = useLibrary((s) => s.toast);
-  const themeId = useReaderSettings((s) => s.theme);
+  // A collection may open its books in its own palette (e.g. Holy Scripture → Vigil).
+  const setSessionTheme = useReaderSettings((s) => s.setSessionTheme);
+  useEffect(() => {
+    setSessionTheme(isThemeId(readerTheme) ? readerTheme : null);
+    return () => setSessionTheme(null);
+  }, [readerTheme, setSessionTheme]);
+  const themeId = useEffectiveTheme();
   const theme = THEMES[themeId];
   const [book, setBook] = useState<Book | null>(null);
   const [percent, setPercent] = useState(0);

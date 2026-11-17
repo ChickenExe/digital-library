@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { AnimatePresence, LazyMotion, m, MotionConfig } from "motion/react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { events } from "./lib/api";
 import { page, SECTION_ORDER } from "./lib/motion";
-import { useLibrary, type Section } from "./store/library";
+import { sectionOf, useLibrary, type Page, type Section } from "./store/library";
 import { useDiscover } from "./store/discover";
 import { Header } from "./features/shell/Header";
 import { HomeView } from "./features/home/HomeView";
@@ -15,6 +15,9 @@ import { ReaderView } from "./features/reader/ReaderView";
 import { Toasts } from "./features/library/Toasts";
 import { DropOverlay, useDragState } from "./features/library/DropOverlay";
 import styles from "./App.module.css";
+
+// Collected editions are code-split: their fonts and art load only when opened.
+const EditionView = lazy(() => import("./features/editions/EditionView"));
 
 const VIEWS: Record<Section, () => React.JSX.Element> = {
   home: HomeView,
@@ -28,10 +31,15 @@ export default function App() {
   const listingOpen = useDiscover((s) => !!s.open);
   const dragging = useDragState();
 
-  // The section stays mounted under the reader, so closing a book lands exactly where you were.
-  const section: Section = view.kind === "reader" ? view.returnTo : view.kind;
-  const direction = useDirection(section);
-  const Current = VIEWS[section];
+  const editionReturn = useLibrary((s) => s.editionReturn);
+
+  // The page stays mounted under the reader, so closing a book lands exactly where you were.
+  const current: Page = view.kind === "reader" ? view.returnTo : view;
+  const section = sectionOf(current, editionReturn);
+  const pageKey = current.kind === "edition" ? `edition:${current.id}` : current.kind;
+  const direction = useDirection(pageKey);
+  const editionTheme = current.kind === "edition" ? current.theme : undefined;
+  useThemeCrossfade(editionTheme);
 
   useEffect(() => {
     const { refresh, setImportProgress } = useLibrary.getState();
@@ -68,11 +76,12 @@ export default function App() {
     // render immediately and start animating once it arrives). `strict` keeps it that way.
     <LazyMotion features={loadMotionFeatures} strict>
     <MotionConfig reducedMotion="user">
-      <div className={styles.shell} inert={view.kind === "reader"}>
+      {/* An open edition themes the whole shell (header included) via scoped tokens. */}
+      <div className={styles.shell} inert={view.kind === "reader"} data-edition-theme={editionTheme}>
         <Header />
         {/* A red hairline sweeps under the header on every section change. */}
         <m.div
-          key={`sweep-${section}`}
+          key={`sweep-${pageKey}`}
           className={styles.sweep}
           style={{ originX: direction >= 0 ? 0 : 1 }}
           initial={{ scaleX: 0, opacity: 1 }}
@@ -82,7 +91,7 @@ export default function App() {
           {/* popLayout: the old page leaves while the new one arrives (no blank gap). */}
           <AnimatePresence mode="popLayout" custom={direction} initial={false}>
             <m.div
-              key={section}
+              key={pageKey}
               className={styles.page}
               custom={direction}
               variants={page}
@@ -90,7 +99,16 @@ export default function App() {
               animate="center"
               exit="exit"
             >
-              <Current />
+              {current.kind === "edition" ? (
+                <Suspense fallback={null}>
+                  <EditionView id={current.id} />
+                </Suspense>
+              ) : (
+                (() => {
+                  const Current = VIEWS[section];
+                  return <Current />;
+                })()
+              )}
             </m.div>
           </AnimatePresence>
         </div>
@@ -101,7 +119,9 @@ export default function App() {
       </div>
 
       <AnimatePresence>
-        {view.kind === "reader" && <ReaderView key={view.bookId} bookId={view.bookId} origin={view.origin} />}
+        {view.kind === "reader" && (
+          <ReaderView key={view.bookId} bookId={view.bookId} origin={view.origin} readerTheme={view.readerTheme} />
+        )}
       </AnimatePresence>
       <Toasts />
     </MotionConfig>
@@ -111,13 +131,31 @@ export default function App() {
 
 const loadMotionFeatures = () => import("./lib/motionFeatures").then((mod) => mod.default);
 
-/** +1 when moving right along 01→04, -1 when moving left. */
-function useDirection(section: Section): number {
-  const prev = useRef(section);
+/** Pages beyond the four sections (editions) count as "deeper": entering slides forward. */
+const orderOf = (key: string) => (key in SECTION_ORDER ? SECTION_ORDER[key as Section] : 10);
+
+/** +1 when moving right along 01→04 (or into an edition), -1 when moving back. */
+function useDirection(key: string): number {
+  const prev = useRef(key);
   const dir = useRef(1);
-  if (prev.current !== section) {
-    dir.current = SECTION_ORDER[section] >= SECTION_ORDER[prev.current] ? 1 : -1;
-    prev.current = section;
+  if (prev.current !== key) {
+    dir.current = orderOf(key) >= orderOf(prev.current) ? 1 : -1;
+    prev.current = key;
   }
   return dir.current;
+}
+
+/** Entering or leaving a themed edition cross-fades the palette rather than snapping. */
+function useThemeCrossfade(theme: string | undefined) {
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const root = document.documentElement;
+    root.classList.add("theme-switching");
+    const t = window.setTimeout(() => root.classList.remove("theme-switching"), 380);
+    return () => window.clearTimeout(t);
+  }, [theme]);
 }

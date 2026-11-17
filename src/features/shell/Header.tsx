@@ -1,7 +1,7 @@
 import { m } from "motion/react";
 import { SPRING } from "../../lib/motion";
 import type { Section } from "../../store/library";
-import { useLibrary } from "../../store/library";
+import { sectionOf, useLibrary } from "../../store/library";
 import { useDiscover } from "../../store/discover";
 import { ThemeToggle } from "./ThemeToggle";
 import { WindowControls } from "./WindowControls";
@@ -17,7 +17,8 @@ const NAV: { id: Section; label: string }[] = [
 const IS_MAC = navigator.userAgent.includes("Mac");
 
 export function Header() {
-  const view = useLibrary((s) => (s.view.kind === "reader" ? s.view.returnTo : s.view.kind));
+  // Inside an edition (or the reader), the pill stays on the section you came from.
+  const view = useLibrary((s) => sectionOf(s.view.kind === "reader" ? s.view.returnTo : s.view, s.editionReturn));
   const navigate = useLibrary((s) => s.navigate);
   const importing = useLibrary((s) => s.importing);
   const pickAndImport = useLibrary((s) => s.pickAndImport);

@@ -9,6 +9,7 @@
 //! (paid listings from publishers) plugs in later — see docs/STOREFRONT.md.
 
 pub mod commands;
+pub mod editions;
 pub mod gutenberg;
 pub mod sets;
 pub mod store;

@@ -18,6 +18,8 @@ import type { CatalogRow } from "../bindings/CatalogRow";
 import type { CatalogStatus } from "../bindings/CatalogStatus";
 import type { DownloadProgress } from "../bindings/DownloadProgress";
 import type { CollectionSet } from "../bindings/CollectionSet";
+import type { Edition } from "../bindings/Edition";
+import type { EditionSummary } from "../bindings/EditionSummary";
 
 /** Shape of every error a command can reject with (see `src-tauri/src/error.rs`). */
 export type AppError = {
@@ -57,6 +59,8 @@ export const api = {
   catalogAcquire: (provider: string, id: string) =>
     invoke<Book>("catalog_acquire", { provider, id }),
   collectionSets: () => invoke<CollectionSet[]>("collection_sets"),
+  editionSummaries: () => invoke<EditionSummary[]>("edition_summaries"),
+  edition: (id: string) => invoke<Edition>("edition", { id }),
 };
 
 export const events = {

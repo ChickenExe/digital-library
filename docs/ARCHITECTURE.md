@@ -117,6 +117,17 @@ src/
 
 The readers are code-split. epub.js and pdf.js (~800 KB) load only when a book is opened, so the library view starts with ~250 KB of JS.
 
+## Collected editions
+
+Some books and series get a dedicated, themed home: their own structure, palette, typography and reading theme. They use the same Index language (numbered sections, giant type, hairlines), re-voiced for the subject. The first is **Holy Scripture, in the order of the Orthodox canon**.
+
+- **Data** (`src-tauri/src/catalog/editions.rs`). An edition is sections of slots. Each slot points at a catalog volume, notes that it lives inside another volume (the Epistle of Jeremiah is Baruch 6), or records that no public-domain text exists (1 Esdras, 3 Maccabees). Ownership and progress come from the library, so collecting from anywhere fills the edition. Tests pin the canon: 49 Old Testament + 27 New Testament books, minor prophets before Isaiah, General Epistles before St Paul's, and no volume used twice by accident.
+- **Texts.** The KJV per book, plus the Douay-Rheims for the deuterocanonical books and for Esther and Daniel, whose Greek additions the Orthodox canon includes.
+- **Theme** (`features/editions/themes.css`). A palette applied as scoped CSS tokens via `data-edition-theme`. Inside an edition the whole shell, header included, takes the palette; outside, the edition's tile carries it as an object on any page. For Scripture: near-black and bone white at full contrast, with cinnabar used as liturgical books use red (rubrics, numerals, what's in progress).
+- **Reading.** Books opened from an edition use its reader palette for that session (Scripture → Vigil: black page, bone text, red rubric headings), without overwriting the reader's own preference.
+- **Interaction.** Every slot is a tablet that inverts from black to white once collected, so the page brightens as the canon fills. A canon strip at the top gives one square per book. "Collect the canon" downloads every available book in sequence, with a single progress readout.
+- **Adding an edition.** Add an `EditionDef` to `EDITIONS` (Rust), a palette block to `themes.css`, and a reader theme mapping in `themes.ts`. The page is shared; the hero art (here, the Orthodox cross) is the main per-edition component.
+
 ## Performance and memory
 
 Benchmarked with `scripts/make-bench-library.py` (600 EPUBs, each with a 1000×1500 cover). Figures are the WebKit content process RSS on Linux, with compositing off so they're comparable across builds.

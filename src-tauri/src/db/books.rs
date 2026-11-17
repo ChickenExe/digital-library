@@ -196,6 +196,13 @@ pub fn get(conn: &Connection, id: &str) -> AppResult<Book> {
         .ok_or_else(|| AppError::NotFound(format!("book {id}")))
 }
 
+/// `book id -> percent read` for every book that has been opened.
+pub fn progress_map(conn: &Connection) -> AppResult<std::collections::HashMap<String, f64>> {
+    let mut stmt = conn.prepare("SELECT book_id, percent FROM reading_progress")?;
+    let map = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?.collect::<Result<_, _>>()?;
+    Ok(map)
+}
+
 pub fn get_locations(conn: &Connection, id: &str, chars_per: u32) -> AppResult<Option<String>> {
     Ok(conn
         .query_row(

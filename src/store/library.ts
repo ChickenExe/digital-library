@@ -15,9 +15,22 @@ import { api, errorMessage } from "../lib/api";
 export type Section = "home" | "discover" | "collection" | "circles";
 /** Where a book was opened from, so the reader can expand out of (and collapse back into) it. */
 export type Origin = { top: number; left: number; width: number; height: number };
+/** A full page in the shell: one of the four sections, or a collected edition. */
+export type Page = { kind: Section } | { kind: "edition"; id: string; theme: string };
 export type View =
-  | { kind: Section }
-  | { kind: "reader"; bookId: string; returnTo: Section; origin: Origin | null };
+  | Page
+  | {
+      kind: "reader";
+      bookId: string;
+      returnTo: Page;
+      origin: Origin | null;
+      /** A collection's themed reading palette (e.g. "vigil" for Holy Scripture). */
+      readerTheme?: string;
+    };
+
+/** The section a page belongs to (editions live under whichever section opened them). */
+export const sectionOf = (page: Page, fallback: Section = "home"): Section =>
+  page.kind === "edition" ? fallback : page.kind;
 
 export const originOf = (el: Element | null | undefined): Origin | null => {
   if (!el) return null;
@@ -29,6 +42,8 @@ type Toast = { id: number; tone: "info" | "error"; text: string };
 
 type LibraryState = {
   view: View;
+  /** The section an open edition was entered from (keeps the nav pill and Back in place). */
+  editionReturn: Section;
   query: BookQuery;
   books: Book[];
   stats: LibraryStats;
@@ -43,7 +58,8 @@ type LibraryState = {
   setImportProgress: (p: ImportProgress | null) => void;
   toggleFavorite: (book: Book) => Promise<void>;
   deleteBook: (book: Book) => Promise<void>;
-  openBook: (id: string, from?: Element | null) => void;
+  openBook: (id: string, from?: Element | null, opts?: { readerTheme?: string }) => void;
+  openEdition: (id: string, theme: string) => void;
   closeReader: () => void;
   navigate: (view: Section) => void;
   toast: (text: string, tone?: Toast["tone"]) => void;
@@ -55,6 +71,7 @@ let toastSeq = 0;
 
 export const useLibrary = create<LibraryState>((set, get) => ({
   view: { kind: "home" },
+  editionReturn: "home",
   query: { shelf: "all", sort: "recent" },
   books: [],
   stats: { total: 0, reading: 0, favorites: 0, finished: 0, authors: 0 },
@@ -122,20 +139,25 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     }
   },
 
-  openBook: (id, from) => {
+  openBook: (id, from, opts) => {
     const view = get().view;
     set({
       view: {
         kind: "reader",
         bookId: id,
-        returnTo: view.kind === "reader" ? view.returnTo : view.kind,
+        returnTo: view.kind === "reader" ? view.returnTo : view,
         origin: originOf(from),
+        readerTheme: opts?.readerTheme,
       },
     });
   },
+  openEdition: (id, theme) => {
+    const view = get().view;
+    set({ view: { kind: "edition", id, theme }, editionReturn: view.kind === "reader" ? "home" : sectionOf(view) });
+  },
   closeReader: () => {
     const view = get().view;
-    set({ view: { kind: view.kind === "reader" ? view.returnTo : "home" } });
+    set({ view: view.kind === "reader" ? view.returnTo : { kind: "home" } });
     void get().refresh();
   },
   navigate: (kind) => set({ view: { kind } }),

@@ -10,7 +10,7 @@ import literataItalicUrl from "@fontsource-variable/literata/files/literata-lati
 import atkinsonUrl from "@fontsource-variable/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-wght-normal.woff2?url";
 import atkinsonItalicUrl from "@fontsource-variable/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-wght-italic.woff2?url";
 
-export type ThemeId = "paper" | "sepia" | "dusk" | "night";
+export type ThemeId = "paper" | "sepia" | "dusk" | "night" | "vigil";
 export type FontId = "literata" | "atkinson" | "publisher";
 export type WidthId = "narrow" | "medium" | "wide";
 export type FlowId = "paginated" | "scrolled";
@@ -24,6 +24,8 @@ export type ReaderTheme = {
   /** CSS filter applied to rendered PDF pages so they match the theme. */
   pdfFilter: string;
   dark: boolean;
+  /** Headings set in the accent colour, like the red rubrics of liturgical books. */
+  rubrics?: boolean;
 };
 
 export const THEMES: Record<ThemeId, ReaderTheme> = {
@@ -31,6 +33,9 @@ export const THEMES: Record<ThemeId, ReaderTheme> = {
   sepia: { label: "Sepia", bg: "#efe2c6", text: "#43361f", muted: "#8c7a58", accent: "#9c4a1e", pdfFilter: "sepia(0.35) brightness(0.96)", dark: false },
   dusk: { label: "Dusk", bg: "#2d2f33", text: "#d6d1c6", muted: "#8d8a83", accent: "#e8875f", pdfFilter: "invert(0.86) hue-rotate(180deg) brightness(1.05)", dark: true },
   night: { label: "Night", bg: "#151413", text: "#b9b2a5", muted: "#6f6a62", accent: "#d9774f", pdfFilter: "invert(0.9) hue-rotate(180deg) brightness(0.92)", dark: true },
+  // Holy Scripture's palette: black page, bone text, cinnabar rubrics. High contrast,
+  // but bone rather than pure white so it stays comfortable for long reading.
+  vigil: { label: "Vigil", bg: "#0a0a0a", text: "#e6e0d3", muted: "#7d786e", accent: "#d2452f", pdfFilter: "invert(0.92) hue-rotate(180deg)", dark: true, rubrics: true },
 };
 
 export const FONTS: Record<FontId, { label: string; family: string; note: string }> = {
@@ -77,16 +82,31 @@ function initial(): ReaderSettings {
   }
 }
 
-type Store = ReaderSettings & { set: (patch: Partial<ReaderSettings>) => void };
+type Store = ReaderSettings & {
+  /**
+   * A collection's palette for the current reading session (e.g. Holy Scripture
+   * opens in Vigil). Not persisted; choosing a theme yourself replaces it.
+   */
+  sessionTheme: ThemeId | null;
+  set: (patch: Partial<ReaderSettings>) => void;
+  setSessionTheme: (theme: ThemeId | null) => void;
+};
 
 export const useReaderSettings = create<Store>((set, get) => ({
   ...initial(),
+  sessionTheme: null,
   set: (patch) => {
-    set(patch);
-    const { set: _omit, ...data } = { ...get() };
+    set(patch.theme ? { ...patch, sessionTheme: null } : patch);
+    const { set: _a, setSessionTheme: _b, sessionTheme: _c, ...data } = { ...get() };
     localStorage.setItem(KEY, JSON.stringify(data));
   },
+  setSessionTheme: (sessionTheme) => set({ sessionTheme }),
 }));
+
+/** The theme actually in effect: a collection's session palette, else the user's choice. */
+export const useEffectiveTheme = (): ThemeId => useReaderSettings((s) => s.sessionTheme ?? s.theme);
+
+export const isThemeId = (v: unknown): v is ThemeId => typeof v === "string" && v in THEMES;
 
 const abs = (u: string) => new URL(u, window.location.href).href;
 
@@ -130,6 +150,7 @@ body {
 }
 body * { color: inherit !important; background-color: transparent !important; border-color: ${t.muted} !important; }
 ${enforceFont ? `body *:not(pre):not(code):not(kbd) { font-family: inherit !important; }` : ""}
+${t.rubrics ? `h1, h2, h3, h4, h1 *, h2 *, h3 *, h4 * { color: ${t.accent} !important; letter-spacing: 0.04em; }` : ""}
 p, li, blockquote, dd { line-height: inherit !important; text-align: left !important; }
 h1, h2, h3, h4 { line-height: 1.25 !important; text-align: left !important; font-weight: 600 !important; }
 a, a * { color: ${t.accent} !important; text-decoration-thickness: 1px; }

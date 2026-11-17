@@ -75,3 +75,5 @@
 
 .right { position: relative; overflow: hidden; min-width: 0; }
 .rightLabel { position: absolute; top: 30px; left: 44px; right: var(--space-12); z-index: 5; }
+
+.editions { display: grid; gap: var(--space-3); margin-top: 14px; }

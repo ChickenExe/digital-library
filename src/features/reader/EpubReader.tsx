@@ -5,7 +5,7 @@ import type { Book } from "../../bindings/Book";
 import { api, fetchBookBytes } from "../../lib/api";
 import { EASE, prefersReducedMotion } from "../../lib/motion";
 import type { ProgressHandler } from "./ReaderView";
-import { epubCss, useReaderSettings, WIDTHS } from "./settings";
+import { epubCss, useEffectiveTheme, useReaderSettings, WIDTHS } from "./settings";
 import styles from "./Reader.module.css";
 
 type Props = { book: Book; initialLocator?: string; onProgress: ProgressHandler };
@@ -22,7 +22,8 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  const { theme, font, size, leading, width, flow } = useReaderSettings();
+  const { font, size, leading, width, flow } = useReaderSettings();
+  const theme = useEffectiveTheme();
   const css = useMemo(
     () => epubCss({ theme, font, size, leading, width, flow }),
     [theme, font, size, leading, width, flow],
@@ -73,7 +74,16 @@ export function EpubReader({ book, initialLocator, onProgress }: Props) {
       // Arrow keys while focus is inside the book's iframe.
       r.on("keyup", (e: KeyboardEvent) => navigateKey(e, turnRef.current));
 
-      await r.display(cfiRef.current || undefined);
+      try {
+        await r.display(cfiRef.current || undefined);
+      } catch (e) {
+        // A saved position that no longer resolves (corrupt, or the file changed)
+        // must never make a book unopenable: start from the beginning instead.
+        if (!cfiRef.current) throw e;
+        console.warn("saved position unusable, opening at the start", e);
+        cfiRef.current = undefined;
+        await r.display();
+      }
       if (cancelled) return;
       setReady(true);
 

@@ -41,7 +41,11 @@ type DiscoverState = {
   openListing: (entry: CatalogEntry, morph?: { key: string; el: Element | null }) => Promise<void>;
   endMorph: () => void;
   closeListing: () => void;
-  acquire: (entry: CatalogEntry, openAfter?: boolean) => Promise<void>;
+  /**
+   * Downloads a listing into the library. `quiet` suppresses per-book toasts (for
+   * batch collection); errors are re-thrown instead. Resolves to the new book id.
+   */
+  acquire: (entry: CatalogEntry, opts?: { openAfter?: boolean; quiet?: boolean }) => Promise<string | null>;
   onDownloadProgress: (p: DownloadProgress) => void;
 };
 
@@ -141,21 +145,24 @@ export const useDiscover = create<DiscoverState>((set, get) => ({
   closeListing: () => set({ open: null }),
   endMorph: () => set({ morphing: null }),
 
-  acquire: async (entry, openAfter = false) => {
+  acquire: async (entry, { openAfter = false, quiet = false } = {}) => {
     const key = listingKey(entry);
-    if (get().downloads[key]) return;
+    if (get().downloads[key]) return null;
     set({ downloads: { ...get().downloads, [key]: "starting" } });
     const library = useLibrary.getState();
     try {
       const book = await api.catalogAcquire(entry.provider, entry.id);
-      library.toast(`“${book.title}” is in your library`);
+      if (!quiet) library.toast(`“${book.title}” is in your library`);
       markOwned(set, get, entry, book.id);
       if (openAfter) {
         set({ open: null });
         library.openBook(book.id);
       }
+      return book.id;
     } catch (e) {
+      if (quiet) throw e;
       library.toast(`Couldn’t get “${entry.title}”: ${errorMessage(e)}`, "error");
+      return null;
     } finally {
       const { [key]: _, ...rest } = get().downloads;
       set({ downloads: rest });
