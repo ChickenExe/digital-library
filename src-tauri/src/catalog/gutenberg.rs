@@ -7,35 +7,107 @@
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use std::io::Read;
+use std::sync::atomic::{AtomicI64, Ordering};
 
 use crate::error::{AppError, AppResult};
 
 pub const PROVIDER: &str = "gutenberg";
-const BASE: &str = "https://www.gutenberg.org";
 
-pub const CATALOG_CSV_URL: &str = "https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv.gz";
+/// gutenberg.org itself, then the official PGLAF mirror. The mirror has the
+/// static files (catalogue, covers, EPUBs under /cache/epub) but none of the
+/// dynamic pages (OPDS search, book pages), and it's slower.
+const PRIMARY: &str = "https://www.gutenberg.org";
+const MIRROR: &str = "https://gutenberg.pglaf.org";
+/// Gutendex: an independent index of Gutenberg with popularity and summaries.
+const GUTENDEX: &str = "https://gutendex.com";
+
+/// When gutenberg.org fails (5xx / unreachable), try the mirror first for a while
+/// instead of waiting on a dead server for every request.
+static PRIMARY_DOWN_UNTIL: AtomicI64 = AtomicI64::new(0);
+const PRIMARY_BACKOFF_MS: i64 = 10 * 60 * 1000;
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or_default()
+}
+
+/// Call when a request to gutenberg.org failed with a server/network error.
+pub fn mark_primary_down() {
+    PRIMARY_DOWN_UNTIL.store(now_ms() + PRIMARY_BACKOFF_MS, Ordering::Relaxed);
+}
+
+pub fn primary_down() -> bool {
+    PRIMARY_DOWN_UNTIL.load(Ordering::Relaxed) > now_ms()
+}
+
+/// `true` if the URL is on gutenberg.org (used to decide when to back off).
+pub fn is_primary(url: &str) -> bool {
+    url.starts_with(PRIMARY)
+}
+
+/// Primary then mirror, or mirror first while the primary is known to be down.
+fn bases() -> [&'static str; 2] {
+    if primary_down() { [MIRROR, PRIMARY] } else { [PRIMARY, MIRROR] }
+}
+
+pub fn catalog_csv_urls() -> Vec<String> {
+    bases().iter().map(|b| format!("{b}/cache/epub/feeds/pg_catalog.csv.gz")).collect()
+}
+
 /// Pages of 25 entries fetched for the popularity ranking (≈1000 books).
 pub const POPULAR_PAGES: u32 = 40;
+/// Gutendex fallback: pages of 32, most downloaded first (≈1000 books).
+pub const GUTENDEX_PAGES: u32 = 32;
 
 pub fn popular_page_url(page: u32) -> String {
-    format!("{BASE}/ebooks/search.opds/?sort_order=downloads&start_index={}", page * 25 + 1)
+    format!("{PRIMARY}/ebooks/search.opds/?sort_order=downloads&start_index={}", page * 25 + 1)
+}
+pub fn gutendex_popular_url(page: u32) -> String {
+    format!("{GUTENDEX}/books/?page={}", page + 1)
 }
 pub fn detail_url(id: &str) -> String {
-    format!("{BASE}/ebooks/{id}.opds")
+    format!("{PRIMARY}/ebooks/{id}.opds")
 }
-pub fn cover_url(id: &str) -> String {
-    format!("{BASE}/cache/epub/{id}/pg{id}.cover.medium.jpg")
+pub fn gutendex_detail_url(id: &str) -> String {
+    format!("{GUTENDEX}/books/?ids={id}")
+}
+pub fn cover_urls(id: &str) -> Vec<String> {
+    bases().iter().map(|b| format!("{b}/cache/epub/{id}/pg{id}.cover.medium.jpg")).collect()
 }
 pub fn web_url(id: &str) -> String {
-    format!("{BASE}/ebooks/{id}")
+    format!("{PRIMARY}/ebooks/{id}")
 }
-/// Preferred EPUB variants, best first (EPUB 3 with images → older fallbacks).
-pub fn epub_urls(id: &str) -> [String; 3] {
-    [
-        format!("{BASE}/ebooks/{id}.epub3.images"),
-        format!("{BASE}/ebooks/{id}.epub.images"),
-        format!("{BASE}/ebooks/{id}.epub.noimages"),
+
+/// A place an EPUB might be downloaded from.
+pub struct EpubSource {
+    pub url: String,
+    /// Skip this source if the file is larger than this (the mirror is slow, so
+    /// huge illustrated editions fall back to the compact text edition there).
+    pub max_bytes: Option<u64>,
+}
+
+/// Preferred EPUB variants, best first: EPUB 3 with images → older fallbacks,
+/// on gutenberg.org, then the same files on the mirror.
+pub fn epub_sources(id: &str) -> Vec<EpubSource> {
+    let primary = [
+        format!("{PRIMARY}/ebooks/{id}.epub3.images"),
+        format!("{PRIMARY}/ebooks/{id}.epub.images"),
+        format!("{PRIMARY}/ebooks/{id}.epub.noimages"),
     ]
+    .map(|url| EpubSource { url, max_bytes: None });
+    const MIRROR_IMAGES_MAX: u64 = 8 * 1024 * 1024;
+    let mirror = [
+        EpubSource { url: format!("{MIRROR}/cache/epub/{id}/pg{id}-images-3.epub"), max_bytes: Some(MIRROR_IMAGES_MAX) },
+        EpubSource { url: format!("{MIRROR}/cache/epub/{id}/pg{id}-images.epub"), max_bytes: Some(MIRROR_IMAGES_MAX) },
+        EpubSource { url: format!("{MIRROR}/cache/epub/{id}/pg{id}.epub"), max_bytes: None },
+    ];
+    if primary_down() {
+        mirror.into_iter().chain(primary).collect()
+    } else {
+        primary.into_iter().chain(mirror).collect()
+    }
 }
 
 /// PG ids are plain integers; anything else is rejected before building URLs.
@@ -253,15 +325,53 @@ pub fn parse_detail(xml: &str) -> Detail {
         paragraphs.iter().find_map(|p| p.strip_prefix(label).map(|v| v.trim().to_string()))
     };
     Detail {
-        summary: field("Summary:").map(|s| {
-            s.replace("(This is an automatically generated summary.)", "").trim().to_string()
-        }),
+        summary: field("Summary:").map(|s| clean_summary(&s)),
         downloads: field("Downloads:").and_then(|d| d.replace(',', "").parse().ok()),
         reading_level: field("Reading Level:").map(|r| {
             // "Reading ease score: 69.2 (8th & 9th grade). Neither easy nor difficult to read."
             r.split_once(". ").map(|(_, rest)| rest.trim_end_matches('.').to_string()).unwrap_or(r)
         }),
     }
+}
+
+/// One book from a Gutendex results page: its id plus the details we keep.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GutendexBook {
+    pub id: String,
+    pub detail: Detail,
+}
+
+/// Parses a Gutendex `/books/` response (results are ordered by popularity).
+pub fn parse_gutendex(json: &str) -> AppResult<Vec<GutendexBook>> {
+    #[derive(serde::Deserialize)]
+    struct Page {
+        results: Vec<Book>,
+    }
+    #[derive(serde::Deserialize)]
+    struct Book {
+        id: u64,
+        #[serde(default)]
+        summaries: Vec<String>,
+        #[serde(default)]
+        download_count: Option<u32>,
+    }
+    let page: Page = serde_json::from_str(json).map_err(|e| AppError::Parse(format!("gutendex: {e}")))?;
+    Ok(page
+        .results
+        .into_iter()
+        .map(|b| GutendexBook {
+            id: b.id.to_string(),
+            detail: Detail {
+                summary: b.summaries.into_iter().next().map(|s| clean_summary(&s)).filter(|s| !s.is_empty()),
+                downloads: b.download_count,
+                reading_level: None,
+            },
+        })
+        .collect())
+}
+
+fn clean_summary(s: &str) -> String {
+    s.replace("(This is an automatically generated summary.)", "").trim().to_string()
 }
 
 #[cfg(test)]
@@ -318,6 +428,26 @@ mod tests {
         assert_eq!(d.summary.as_deref(), Some("\"Pride and Prejudice\" by Jane Austen is a novel & more."));
         assert_eq!(d.downloads, Some(86053));
         assert_eq!(d.reading_level.as_deref(), Some("Neither easy nor difficult to read"));
+    }
+
+    #[test]
+    fn parses_gutendex_and_orders_sources() {
+        let json = r#"{"count":2,"next":null,"results":[
+            {"id":1342,"title":"Pride and Prejudice","summaries":["A novel. (This is an automatically generated summary.)"],"download_count":208430},
+            {"id":84,"title":"Frankenstein","summaries":[],"download_count":182729}]}"#;
+        let books = parse_gutendex(json).unwrap();
+        assert_eq!(books[0].id, "1342");
+        assert_eq!(books[0].detail.summary.as_deref(), Some("A novel."));
+        assert_eq!(books[0].detail.downloads, Some(208430));
+        assert_eq!(books[1].detail.summary, None);
+
+        PRIMARY_DOWN_UNTIL.store(0, Ordering::Relaxed);
+        assert!(epub_sources("1342")[0].url.starts_with(PRIMARY));
+        assert!(catalog_csv_urls()[1].starts_with(MIRROR));
+        mark_primary_down();
+        assert!(epub_sources("1342")[0].url.starts_with(MIRROR), "mirror first while primary is down");
+        assert!(cover_urls("1342")[0].starts_with(MIRROR));
+        PRIMARY_DOWN_UNTIL.store(0, Ordering::Relaxed);
     }
 
     #[test]

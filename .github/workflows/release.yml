@@ -9,11 +9,12 @@ name: Release (Windows)
 # Triggers:
 #   - pushing a version tag (v0.2.0, …)
 #   - running it manually (Actions → Release (Windows) → Run workflow)
-#   - a push whose commit message contains "[release]"
+#   - a push to main whose commit message contains "[release]"
 on:
   push:
     tags: ["v*"]
-    branches: ["**"]
+    # Only main: pushing the same commit to a feature branch too mustn't start a second release.
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:

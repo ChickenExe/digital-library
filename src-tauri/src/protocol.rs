@@ -245,12 +245,36 @@ async fn catalog_cover(state: &CatalogState, path: &str) -> AppResult<Option<Vec
     }
 
     let _permit = state.cover_permits.acquire().await.map_err(|e| crate::error::AppError::Invalid(e.to_string()))?;
-    let response = state.http.get(gutenberg::cover_url(id)).send().await?;
-    if response.status() == StatusCode::NOT_FOUND {
+    // gutenberg.org, then the mirror. Only a definitive 404 everywhere marks
+    // the cover as missing; server errors leave it to be retried later.
+    let mut not_found = 0;
+    let urls = gutenberg::cover_urls(id);
+    let mut last_err = None;
+    for url in &urls {
+        match state.http.get(url).send().await {
+            Ok(r) if r.status().is_success() => {
+                let bytes = r.bytes().await?.to_vec();
+                let _ = tokio::fs::write(&file, &bytes).await;
+                return Ok(Some(bytes));
+            }
+            Ok(r) if r.status() == StatusCode::NOT_FOUND => not_found += 1,
+            Ok(r) => {
+                if gutenberg::is_primary(url) && r.status().is_server_error() {
+                    gutenberg::mark_primary_down();
+                }
+                last_err = Some(crate::error::AppError::Network(format!("HTTP {}", r.status())));
+            }
+            Err(e) => {
+                if gutenberg::is_primary(url) {
+                    gutenberg::mark_primary_down();
+                }
+                last_err = Some(e.into());
+            }
+        }
+    }
+    if not_found == urls.len() {
         let _ = tokio::fs::write(&missing, b"").await;
         return Ok(None);
     }
-    let bytes = response.error_for_status()?.bytes().await?.to_vec();
-    let _ = tokio::fs::write(&file, &bytes).await;
-    Ok(Some(bytes))
+    Err(last_err.unwrap_or_else(|| crate::error::AppError::Network("cover unavailable".into())))
 }

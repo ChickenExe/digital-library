@@ -90,6 +90,17 @@ Position changes are debounced and saved with `save_progress`.
 
 The front page is a spotlight plus curated category rows, de-duplicated so a book appears once. Search blends FTS relevance with popularity. "Get" downloads the EPUB (with `catalog-download` progress events) into `Library/incoming/`, then runs it through the normal import pipeline with an `Origin` (`source_provider`/`source_id`), so the catalog can show "In library". Every listing carries a `provider` and an `Offer`. Those are the seams for a first-party store (see [STOREFRONT.md](STOREFRONT.md)).
 
+**Sources and fallbacks.** gutenberg.org has outages: it returned 503 "down for maintenance" for days in Nov 2026. Every Gutenberg request has a fallback (`catalog/gutenberg.rs`):
+
+| Need | Primary | Fallback |
+|---|---|---|
+| Catalogue CSV, covers | gutenberg.org | `gutenberg.pglaf.org` (official PGLAF mirror, same paths, ~70 KB/s) |
+| Popularity ranking | gutenberg.org OPDS feed | Gutendex popular pages, which also carry summaries and download counts; pages that hang are skipped |
+| Book details | gutenberg.org OPDS | Gutendex lookup; otherwise whatever is cached |
+| EPUB download | gutenberg.org | Mirror: illustrated edition if ≤ 8 MB, else the compact text edition |
+
+After a 5xx or network failure, gutenberg.org is marked down for 10 minutes, and the mirror is tried first so requests don't wait on a dead server.
+
 **Refresh.** Commands that change the catalogue emit `library-changed`. The store re-runs the current query. Stale responses are dropped with a sequence counter.
 
 ## Frontend layout

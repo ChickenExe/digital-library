@@ -104,12 +104,12 @@ pub async fn catalog_detail(app: AppHandle, provider: String, id: String) -> App
         .ok_or_else(|| AppError::NotFound(format!("listing {provider}/{id}")))?;
 
     if stored.fetched_at.is_none_or(|at| now_ms() - at > DETAIL_TTL_MS) {
-        match sync::fetch_text(&catalog.http, &gutenberg::detail_url(&id)).await {
-            Ok(xml) => {
-                let detail = gutenberg::parse_detail(&xml);
+        match fetch_detail(&catalog.http, &id).await {
+            Ok(detail) => {
                 store::save_detail(&*catalog.conn()?, &provider, &id, &detail, now_ms())?;
                 stored.detail = detail;
             }
+            // Keep showing what the index already knows.
             Err(e) => log::warn!("detail fetch failed for {id}: {e}"),
         }
     }
@@ -125,6 +125,25 @@ pub async fn catalog_detail(app: AppHandle, provider: String, id: String) -> App
         web_url: gutenberg::web_url(&id),
         offer: Offer::Free,
     })
+}
+
+/// Book details from gutenberg.org's OPDS page, or from Gutendex when it's down.
+async fn fetch_detail(http: &reqwest::Client, id: &str) -> AppResult<gutenberg::Detail> {
+    if !gutenberg::primary_down() {
+        match sync::fetch_text(http, &gutenberg::detail_url(id)).await {
+            Ok(xml) => return Ok(gutenberg::parse_detail(&xml)),
+            Err(e) => {
+                log::warn!("detail from gutenberg.org failed for {id}: {e}");
+                gutenberg::mark_primary_down();
+            }
+        }
+    }
+    let json = sync::fetch_text(http, &gutenberg::gutendex_detail_url(id)).await?;
+    gutenberg::parse_gutendex(&json)?
+        .into_iter()
+        .find(|b| b.id == id)
+        .map(|b| b.detail)
+        .ok_or_else(|| AppError::NotFound(format!("book {id} on gutendex")))
 }
 
 /// "Get": downloads the EPUB and runs it through the normal import pipeline,
@@ -164,13 +183,36 @@ pub async fn catalog_acquire(app: AppHandle, provider: String, id: String) -> Ap
 
 async fn download(app: &AppHandle, provider: &str, id: &str, target: &Path) -> AppResult<()> {
     let http = &app.state::<CatalogState>().http;
-    for url in gutenberg::epub_urls(id) {
-        let response = http.get(&url).send().await?;
-        if response.status() == reqwest::StatusCode::NOT_FOUND {
-            continue;
-        }
-        let response = response.error_for_status()?;
+    let mut last_err: Option<AppError> = None;
+    for source in gutenberg::epub_sources(id) {
+        let url = &source.url;
+        let response = match http.get(url).send().await {
+            Ok(r) if r.status().is_success() => r,
+            Ok(r) => {
+                // 404: this variant doesn't exist; 5xx: server trouble. Either way, try the next source.
+                if r.status().is_server_error() {
+                    if gutenberg::is_primary(url) {
+                        gutenberg::mark_primary_down();
+                    }
+                    last_err = Some(AppError::Network(format!("HTTP {}", r.status())));
+                }
+                continue;
+            }
+            Err(e) => {
+                log::warn!("download from {url} failed: {e}");
+                if gutenberg::is_primary(url) {
+                    gutenberg::mark_primary_down();
+                }
+                last_err = Some(e.into());
+                continue;
+            }
+        };
         let total = response.content_length();
+        if let (Some(max), Some(t)) = (source.max_bytes, total) {
+            if t > max {
+                continue; // e.g. a 25 MB illustrated edition on the slow mirror
+            }
+        }
         if total.is_some_and(|t| t > MAX_DOWNLOAD_BYTES) {
             return Err(AppError::Invalid("this book is too large to download".into()));
         }
@@ -200,5 +242,5 @@ async fn download(app: &AppHandle, provider: &str, id: &str, target: &Path) -> A
         let _ = app.emit(CATALOG_DOWNLOAD, progress(received));
         return Ok(());
     }
-    Err(AppError::NotFound("no EPUB edition is available for this book".into()))
+    Err(last_err.unwrap_or_else(|| AppError::NotFound("no EPUB edition is available for this book".into())))
 }

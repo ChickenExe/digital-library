@@ -79,11 +79,38 @@ async fn run(app: &AppHandle, force: bool) -> AppResult<()> {
         s.phase = if has_entries { CatalogPhase::Ranking } else { CatalogPhase::Downloading };
         s.message = Some("Checking for new books…".into());
     });
-    let mut request = state.http.get(gutenberg::CATALOG_CSV_URL);
-    if let (false, Some(lm)) = (force, &last_modified) {
-        request = request.header(header::IF_MODIFIED_SINCE, lm);
+    // gutenberg.org first, then the PGLAF mirror (same file).
+    let mut response = None;
+    let mut last_err = None;
+    for url in gutenberg::catalog_csv_urls() {
+        let mut request = state.http.get(&url);
+        if let (false, Some(lm)) = (force, &last_modified) {
+            request = request.header(header::IF_MODIFIED_SINCE, lm);
+        }
+        match request.send().await {
+            Ok(r) if r.status().is_success() || r.status() == StatusCode::NOT_MODIFIED => {
+                response = Some(r);
+                break;
+            }
+            Ok(r) => {
+                log::warn!("catalog from {url}: HTTP {}", r.status());
+                if gutenberg::is_primary(&url) && r.status().is_server_error() {
+                    gutenberg::mark_primary_down();
+                }
+                last_err = Some(AppError::Network(format!("HTTP {}", r.status())));
+            }
+            Err(e) => {
+                log::warn!("catalog from {url}: {e}");
+                if gutenberg::is_primary(&url) {
+                    gutenberg::mark_primary_down();
+                }
+                last_err = Some(e.into());
+            }
+        }
     }
-    let response = request.send().await?;
+    let Some(response) = response else {
+        return Err(last_err.unwrap_or_else(|| AppError::Network("no catalog source reachable".into())));
+    };
     let new_last_modified = response
         .headers()
         .get(header::LAST_MODIFIED)
@@ -91,7 +118,7 @@ async fn run(app: &AppHandle, force: bool) -> AppResult<()> {
         .map(String::from);
 
     if response.status() != StatusCode::NOT_MODIFIED {
-        let bytes = response.error_for_status()?.bytes().await?;
+        let bytes = response.bytes().await?;
         update(app, |s| {
             if !has_entries {
                 s.phase = CatalogPhase::Indexing;
@@ -126,11 +153,15 @@ async fn run(app: &AppHandle, force: bool) -> AppResult<()> {
     // 2. Popularity ranking from the "most downloaded" feed. Best effort: a
     //    partial ranking is still useful, so stop quietly on errors.
     let mut ranked: Vec<String> = Vec::new();
-    for page in 0..gutenberg::POPULAR_PAGES {
+    let pages = if gutenberg::primary_down() { 0 } else { gutenberg::POPULAR_PAGES };
+    for page in 0..pages {
         let xml = match fetch_text(&state.http, &gutenberg::popular_page_url(page)).await {
             Ok(xml) => xml,
             Err(e) => {
                 log::warn!("popularity page {page} failed: {e}");
+                if page == 0 {
+                    gutenberg::mark_primary_down();
+                }
                 break;
             }
         };
@@ -142,6 +173,54 @@ async fn run(app: &AppHandle, force: bool) -> AppResult<()> {
             if !ranked.contains(&id) {
                 ranked.push(id);
             }
+        }
+    }
+    // Fallback: Gutendex's most-downloaded pages, which also carry each book's
+    // summary and download count, so the top ~1000 get details for free.
+    if ranked.is_empty() {
+        let mut details = Vec::new();
+        let mut failures_in_a_row = 0;
+        for page in 0..gutenberg::GUTENDEX_PAGES {
+            // Gutendex occasionally drops a request: retry each page once before giving up.
+            let mut books = Err(AppError::Network("not fetched".into()));
+            for attempt in 0..2 {
+                if attempt > 0 {
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                }
+                books = match fetch_text(&state.http, &gutenberg::gutendex_popular_url(page)).await {
+                    Ok(json) => gutenberg::parse_gutendex(&json),
+                    Err(e) => Err(e),
+                };
+                if books.is_ok() {
+                    break;
+                }
+            }
+            match books {
+                Ok(books) if !books.is_empty() => {
+                    failures_in_a_row = 0;
+                    for b in books {
+                        if !ranked.contains(&b.id) {
+                            ranked.push(b.id.clone());
+                            details.push(b);
+                        }
+                    }
+                }
+                Ok(_) => break,
+                // Some Gutendex pages consistently hang server-side: skip them and
+                // keep going, so one bad page doesn't cost the rest of the ranking.
+                Err(e) => {
+                    log::warn!("gutendex page {page} failed, skipping: {e}");
+                    failures_in_a_row += 1;
+                    if failures_in_a_row >= 3 {
+                        break;
+                    }
+                }
+            }
+        }
+        let conn = state.conn()?;
+        let now = now_ms();
+        for b in &details {
+            store::save_detail(&conn, PROVIDER, &b.id, &b.detail, now)?;
         }
     }
     {
