@@ -354,6 +354,8 @@ pub fn delete(conn: &mut Connection, id: &str) -> AppResult<BookFiles> {
         .ok_or_else(|| AppError::NotFound(format!("book {id}")))?;
     tx.execute("DELETE FROM books_fts WHERE book_id = ?", [id])?;
     tx.execute("DELETE FROM books WHERE id = ?", [id])?;
+    // Annotations reference books loosely (they may belong to a streamed book), so no cascade.
+    tx.execute("DELETE FROM annotations WHERE book_ref = ?", [id])?;
     // Drop authors that no longer have any books.
     tx.execute(
         "DELETE FROM authors WHERE id NOT IN (SELECT DISTINCT author_id FROM book_authors)",
@@ -392,6 +394,44 @@ pub fn save_progress(conn: &Connection, id: &str, locator: &str, percent: f64) -
             SET locator = excluded.locator, percent = excluded.percent, updated_at = excluded.updated_at",
         params![id, locator, percent, now_ms()],
     )?;
+    Ok(())
+}
+
+/// Reading position in a streamed (not yet owned) catalog book.
+pub fn stream_progress(conn: &Connection, provider: &str, source_id: &str) -> AppResult<Option<ReadingProgress>> {
+    Ok(conn
+        .query_row(
+            "SELECT locator, percent, updated_at FROM stream_progress WHERE provider = ? AND source_id = ?",
+            [provider, source_id],
+            |r| Ok(ReadingProgress { locator: r.get(0)?, percent: r.get(1)?, updated_at: r.get(2)? }),
+        )
+        .optional()?)
+}
+
+pub fn save_stream_progress(conn: &Connection, provider: &str, source_id: &str, locator: &str, percent: f64) -> AppResult<()> {
+    conn.execute(
+        "INSERT INTO stream_progress (provider, source_id, locator, percent, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5)
+         ON CONFLICT (provider, source_id) DO UPDATE
+            SET locator = excluded.locator, percent = excluded.percent, updated_at = excluded.updated_at",
+        params![provider, source_id, locator, percent.clamp(0.0, 1.0), now_ms()],
+    )?;
+    Ok(())
+}
+
+/// A streamed book was added to the library: its notes and reading position
+/// move to the library copy (an existing library position wins).
+pub fn adopt_stream(conn: &mut Connection, provider: &str, source_id: &str, book_id: &str) -> AppResult<()> {
+    let tx = conn.transaction()?;
+    let key = format!("{provider}/{source_id}");
+    crate::db::annotations::rekey(&tx, &key, book_id)?;
+    tx.execute(
+        "INSERT OR IGNORE INTO reading_progress (book_id, locator, percent, updated_at)
+         SELECT ?3, locator, percent, updated_at FROM stream_progress WHERE provider = ?1 AND source_id = ?2",
+        params![provider, source_id, book_id],
+    )?;
+    tx.execute("DELETE FROM stream_progress WHERE provider = ? AND source_id = ?", [provider, source_id])?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -504,5 +544,33 @@ mod tests {
         // Numbers are never reused after a delete.
         insert(&mut conn, &sample("c", "Emma", &["Jane Austen"], "h3")).unwrap();
         assert_eq!(get(&conn, "c").unwrap().volume, 3);
+    }
+
+    #[test]
+    fn adopting_a_streamed_book_moves_notes_and_position() {
+        use crate::db::annotations;
+        use crate::models::{HighlightColor, NewAnnotation};
+        let mut conn = open_in_memory(crate::db::LIBRARY_MIGRATIONS).unwrap();
+        insert(&mut conn, &sample("lib", "Pride and Prejudice", &["Jane Austen"], "h")).unwrap();
+        save_stream_progress(&conn, "gutenberg", "1342", "epubcfi(/6/8)", 0.25).unwrap();
+        annotations::create(&conn, &NewAnnotation {
+            book_ref: "gutenberg/1342".into(),
+            locator: "epubcfi(/6/8!/4,/1:0,/1:5)".into(),
+            quote: "truth".into(),
+            note: Some("famous".into()),
+            color: HighlightColor::Green,
+            chapter: None,
+            position: 0.25,
+        })
+        .unwrap();
+
+        adopt_stream(&mut conn, "gutenberg", "1342", "lib").unwrap();
+        assert_eq!(get(&conn, "lib").unwrap().progress.unwrap().locator, "epubcfi(/6/8)");
+        assert!(stream_progress(&conn, "gutenberg", "1342").unwrap().is_none());
+        assert_eq!(annotations::list(&conn, "lib").unwrap().len(), 1);
+
+        // Deleting the book deletes its notes too.
+        delete(&mut conn, "lib").unwrap();
+        assert!(annotations::list(&conn, "lib").unwrap().is_empty());
     }
 }

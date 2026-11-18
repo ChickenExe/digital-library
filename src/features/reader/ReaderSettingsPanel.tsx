@@ -1,4 +1,9 @@
+import { useEffect, useState } from "react";
 import { m } from "motion/react";
+import type { StreamStatus } from "../../bindings/StreamStatus";
+import { api } from "../../lib/api";
+import { fileSizeLabel } from "../../lib/format";
+import { KEEP_OPTIONS, useStreamSettings } from "./doc";
 import type { BookFormat } from "../../bindings/BookFormat";
 import { EASE, SPRING } from "../../lib/motion";
 import {
@@ -19,7 +24,8 @@ import styles from "./ReaderSettingsPanel.module.css";
 const LEADING_LABELS = ["Compact", "Comfortable", "Airy"];
 
 /** Reading comfort controls. EPUB gets everything; PDFs only theme and page size. */
-export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; onClose: () => void }) {
+export function ReaderSettingsPanel(props: { format: BookFormat; stream?: string; onClose: () => void }) {
+  const { format, stream, onClose } = props;
   const s = useReaderSettings();
   const effective = useEffectiveTheme();
   const reflowable = format === "epub";
@@ -125,6 +131,8 @@ export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; o
             />
           </Section>
         )}
+
+        {stream && <StreamSection streamKey={stream} />}
       </m.div>
     </>
   );
@@ -152,5 +160,42 @@ function Segmented(props: { options: { id: string; label: string }[]; value: str
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * A streamed book: how much has actually been downloaded, and how long it's
+ * kept after closing before it's discarded.
+ */
+function StreamSection({ streamKey }: { streamKey: string }) {
+  const keepMinutes = useStreamSettings((s) => s.keepMinutes);
+  const setKeepMinutes = useStreamSettings((s) => s.setKeepMinutes);
+  const [status, setStatus] = useState<StreamStatus | null>(null);
+  useEffect(() => {
+    let live = true;
+    const poll = () => api.streamStatus(streamKey).then((s) => live && setStatus(s), () => {});
+    void poll();
+    const t = setInterval(poll, 2000);
+    return () => {
+      live = false;
+      clearInterval(t);
+    };
+  }, [streamKey]);
+  return (
+    <Section label="Reading on demand">
+      {status && (
+        <p className={styles.streamNote}>
+          {status.mode === "ranged"
+            ? `Fetched ${fileSizeLabel(status.fetched)} of ${fileSizeLabel(status.total)}: only the parts you read.`
+            : `Held temporarily (${fileSizeLabel(status.total)}); this server can't send parts of a book.`}
+        </p>
+      )}
+      <div className={styles.label}>Discard after closing</div>
+      <Segmented
+        options={KEEP_OPTIONS.map((o) => ({ id: String(o.minutes), label: o.label }))}
+        value={String(keepMinutes)}
+        onChange={(v) => setKeepMinutes(Number(v))}
+      />
+    </Section>
   );
 }

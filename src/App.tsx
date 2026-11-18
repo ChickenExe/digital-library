@@ -3,7 +3,7 @@ import { AnimatePresence, LazyMotion, m, MotionConfig } from "motion/react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { events } from "./lib/api";
 import { page, SECTION_ORDER } from "./lib/motion";
-import { sectionOf, useLibrary, type Page, type Section } from "./store/library";
+import { sectionOf, targetKey, useLibrary, type Page, type Section } from "./store/library";
 import { useDiscover } from "./store/discover";
 import { Header } from "./features/shell/Header";
 import { HomeView } from "./features/home/HomeView";
@@ -120,7 +120,7 @@ export default function App() {
 
       <AnimatePresence>
         {view.kind === "reader" && (
-          <ReaderView key={view.bookId} bookId={view.bookId} origin={view.origin} readerTheme={view.readerTheme} />
+          <ReaderView key={targetKey(view.target)} target={view.target} origin={view.origin} readerTheme={view.readerTheme} />
         )}
       </AnimatePresence>
       <Toasts />

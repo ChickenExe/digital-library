@@ -26,10 +26,10 @@
       "csp": {
         "default-src": "'self'",
         "script-src": "'self'",
-        "style-src": "'self' 'unsafe-inline' blob:",
-        "img-src": "'self' data: blob: cover: http://cover.localhost catalog-cover: http://catalog-cover.localhost",
-        "font-src": "'self' data: blob:",
-        "connect-src": "'self' ipc: http://ipc.localhost book: http://book.localhost",
+        "style-src": "'self' 'unsafe-inline' blob: stream: http://stream.localhost",
+        "img-src": "'self' data: blob: cover: http://cover.localhost catalog-cover: http://catalog-cover.localhost stream: http://stream.localhost",
+        "font-src": "'self' data: blob: stream: http://stream.localhost",
+        "connect-src": "'self' ipc: http://ipc.localhost book: http://book.localhost stream: http://stream.localhost",
         "worker-src": "'self' blob:",
         "frame-src": "'self' blob:"
       }
@@ -48,7 +48,9 @@
       "icons/icon.ico"
     ],
     "windows": {
-      "webviewInstallMode": { "type": "downloadBootstrapper" }
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
     }
   }
 }

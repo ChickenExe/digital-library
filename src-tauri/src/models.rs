@@ -169,3 +169,115 @@ pub struct LibraryStats {
     /// Distinct authors in the collection.
     pub authors: u32,
 }
+
+/// Highlighter colours. Each reader theme picks its own shade of these.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(export)]
+pub enum HighlightColor {
+    Yellow,
+    Green,
+    Blue,
+    Pink,
+}
+
+impl HighlightColor {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Yellow => "yellow",
+            Self::Green => "green",
+            Self::Blue => "blue",
+            Self::Pink => "pink",
+        }
+    }
+    pub fn parse(s: &str) -> Self {
+        match s {
+            "green" => Self::Green,
+            "blue" => Self::Blue,
+            "pink" => Self::Pink,
+            _ => Self::Yellow,
+        }
+    }
+}
+
+/// A highlight, optionally with a note.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Annotation {
+    pub id: String,
+    /// A library book id, or `<provider>/<id>` for a streamed book.
+    pub book_ref: String,
+    /// EPUB: CFI range. PDF: JSON page + normalised rects.
+    pub locator: String,
+    pub quote: String,
+    pub note: Option<String>,
+    pub color: HighlightColor,
+    pub chapter: Option<String>,
+    /// 0..1 through the book.
+    pub position: f64,
+    #[ts(type = "number")]
+    pub created_at: i64,
+    #[ts(type = "number")]
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, optional_fields)]
+pub struct NewAnnotation {
+    pub book_ref: String,
+    pub locator: String,
+    pub quote: String,
+    pub note: Option<String>,
+    pub color: HighlightColor,
+    pub chapter: Option<String>,
+    pub position: f64,
+}
+
+/// Changes to an annotation. `note: ""` clears the note.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase", default)]
+#[ts(export, optional_fields)]
+pub struct AnnotationPatch {
+    pub note: Option<String>,
+    pub color: Option<HighlightColor>,
+}
+
+/// A catalog book opened for reading on demand, without adding it to the library.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct StreamedBook {
+    /// `<provider>/<id>`: the session key, and the `book_ref` for its notes.
+    pub key: String,
+    pub provider: String,
+    pub id: String,
+    pub title: String,
+    pub authors: Vec<String>,
+    pub progress: Option<ReadingProgress>,
+    pub status: StreamStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum StreamMode {
+    /// Only the parts of the book you read are fetched (HTTP range requests).
+    Ranged,
+    /// The server can't serve parts, so the whole file sits in a temporary cache.
+    Whole,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct StreamStatus {
+    pub mode: StreamMode,
+    /// Bytes downloaded so far.
+    #[ts(type = "number")]
+    pub fetched: u64,
+    /// Size of the whole book file.
+    #[ts(type = "number")]
+    pub total: u64,
+}

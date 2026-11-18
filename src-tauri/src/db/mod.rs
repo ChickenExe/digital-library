@@ -4,6 +4,7 @@
 //! - `library.db`: the user's books. Precious; migrations are append-only.
 //! - `catalog.db`: an index of remote catalogs. A cache; safe to delete and rebuild.
 
+pub mod annotations;
 pub mod books;
 
 use rusqlite::Connection;
@@ -17,6 +18,7 @@ pub const LIBRARY_MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0002_book_source.sql"),
     include_str!("../../migrations/0003_volume_numbers.sql"),
     include_str!("../../migrations/0004_locations_cache.sql"),
+    include_str!("../../migrations/0005_annotations.sql"),
 ];
 
 pub fn open(path: &Path, migrations: &[&str]) -> AppResult<Connection> {

@@ -5,11 +5,13 @@ use std::path::PathBuf;
 use tauri::ipc::{InvokeBody, Request};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::db::books;
+use crate::db::{annotations, books};
 use crate::error::{AppError, AppResult};
 use crate::import;
 use crate::library::image_extension;
-use crate::models::{Book, BookQuery, ImportProgress, ImportReport, LibraryStats};
+use crate::models::{
+    Annotation, AnnotationPatch, Book, BookQuery, ImportProgress, ImportReport, LibraryStats, NewAnnotation,
+};
 use crate::state::AppState;
 
 /// Fired after anything that changes the catalogue, so every view can refresh.
@@ -150,4 +152,25 @@ pub fn save_locations(state: State<'_, AppState>, id: String, chars_per: u32, da
         return Err(AppError::Invalid("location map too large".into()));
     }
     books::save_locations(&*state.conn()?, &id, chars_per, &data)
+}
+
+/// Highlights and notes for a book (a library id, or `<provider>/<id>` while streaming).
+#[tauri::command(async)]
+pub fn list_annotations(state: State<'_, AppState>, book_ref: String) -> AppResult<Vec<Annotation>> {
+    annotations::list(&*state.conn()?, &book_ref)
+}
+
+#[tauri::command(async)]
+pub fn add_annotation(state: State<'_, AppState>, annotation: NewAnnotation) -> AppResult<Annotation> {
+    annotations::create(&*state.conn()?, &annotation)
+}
+
+#[tauri::command(async)]
+pub fn update_annotation(state: State<'_, AppState>, id: String, patch: AnnotationPatch) -> AppResult<Annotation> {
+    annotations::update(&*state.conn()?, &id, &patch)
+}
+
+#[tauri::command(async)]
+pub fn delete_annotation(state: State<'_, AppState>, id: String) -> AppResult<()> {
+    annotations::delete(&*state.conn()?, &id)
 }

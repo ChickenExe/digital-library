@@ -8,6 +8,7 @@ mod library;
 mod models;
 mod protocol;
 mod state;
+mod stream;
 mod thumbs;
 
 use std::path::PathBuf;
@@ -37,6 +38,7 @@ pub fn run() {
             protocol::handle(Kind::Cover, ctx, req, res)
         })
         .register_asynchronous_uri_scheme_protocol("catalog-cover", protocol::handle_catalog_cover)
+        .register_asynchronous_uri_scheme_protocol("stream", stream::handle)
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             let paths = LibraryPaths::new(&data_dir)?;
@@ -63,6 +65,10 @@ pub fn run() {
                 catalog::sync::spawn(app.handle().clone(), false);
             }
 
+            // Books read on demand: temporary, discarded a while after they're closed.
+            app.manage(stream::StreamState::new(cache_dir.join("streams"))?);
+            stream::spawn_sweeper(app.handle().clone());
+
             import_launch_args(app.handle().clone());
             Ok(())
         })
@@ -79,6 +85,10 @@ pub fn run() {
             commands::window_material,
             commands::get_locations,
             commands::save_locations,
+            commands::list_annotations,
+            commands::add_annotation,
+            commands::update_annotation,
+            commands::delete_annotation,
             catalog::commands::catalog_status,
             catalog::commands::catalog_sync,
             catalog::commands::catalog_home,
@@ -88,6 +98,10 @@ pub fn run() {
             catalog::sets::collection_sets,
             catalog::editions::edition_summaries,
             catalog::editions::edition,
+            stream::stream_open,
+            stream::stream_close,
+            stream::stream_status,
+            stream::stream_save_progress,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Digital Library");

@@ -18,6 +18,14 @@ React/TypeScript UI), targeting **Windows** first.
   [Architecture](docs/ARCHITECTURE.md#performance-and-memory))
 - **Reader:** calm and easy on the eyes, with Paper, Sepia, Dusk and Night themes, the Literata and
   Atkinson Hyperlegible typefaces, size, spacing, line-length and pages/scroll controls, chapter names and time left
+- **Footnotes and citations in place:** tap a note marker and the note opens beside it, even when it lives
+  in another chapter. Works for EPUB 3 notes, ARIA-marked notes, citations and Project Gutenberg's `[1]` style.
+  In PDFs, internal links (such as `[12]` → References) show a preview of where they point
+- **Highlights and notes:** select text in an EPUB or PDF to highlight it in one of four inks, add a note,
+  and find everything again in the Notes panel (exportable as Markdown)
+- **Read on demand:** open any Discover book with **Read now**, without adding it to your library. Only the
+  chapters you open are downloaded, and the book is discarded a few minutes after you close it (you choose
+  how long). Your place and notes are kept, and they move into the library if you click **Keep**
 
 - **Discover:** browse and search 70,000+ free public-domain books from Project Gutenberg,
   with curated rows, popularity ranking, summaries and one-click "Get" into your library

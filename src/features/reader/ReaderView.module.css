@@ -65,3 +65,25 @@
 :root[data-platform="windows"] .bar { padding-right: calc(var(--space-6) + 138px); }
 :root[data-platform="macos"] .bar { padding-left: 88px; }
 .barTools { display: flex; gap: 4px; justify-self: end; }
+
+/* Reading on demand: a quiet tag by the title, and the one-click way to keep the book. */
+.streamTag {
+  display: inline-block;
+  vertical-align: 1px;
+  line-height: 1.4;
+  margin-right: 10px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 9.5px;
+  color: var(--r-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--r-accent) 45%, transparent) inset;
+}
+.keep { color: var(--r-accent); }
+.keep:disabled { opacity: 0.6; cursor: progress; }
+.count {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  background: color-mix(in srgb, var(--r-text) 10%, transparent);
+}

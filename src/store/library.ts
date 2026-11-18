@@ -17,11 +17,15 @@ export type Section = "home" | "discover" | "collection" | "circles";
 export type Origin = { top: number; left: number; width: number; height: number };
 /** A full page in the shell: one of the four sections, or a collected edition. */
 export type Page = { kind: Section } | { kind: "edition"; id: string; theme: string };
+/** What the reader shows: a book in the library, or a catalog listing read on demand. */
+export type ReaderTarget = { kind: "book"; id: string } | { kind: "stream"; provider: string; id: string };
+export const targetKey = (t: ReaderTarget) => (t.kind === "book" ? t.id : `${t.provider}/${t.id}`);
+
 export type View =
   | Page
   | {
       kind: "reader";
-      bookId: string;
+      target: ReaderTarget;
       returnTo: Page;
       origin: Origin | null;
       /** A collection's themed reading palette (e.g. "vigil" for Holy Scripture). */
@@ -59,6 +63,8 @@ type LibraryState = {
   toggleFavorite: (book: Book) => Promise<void>;
   deleteBook: (book: Book) => Promise<void>;
   openBook: (id: string, from?: Element | null, opts?: { readerTheme?: string }) => void;
+  /** Reads a catalog listing without adding it to the library (streamed, then discarded). */
+  openStream: (provider: string, id: string, from?: Element | null) => void;
   openEdition: (id: string, theme: string) => void;
   closeReader: () => void;
   navigate: (view: Section) => void;
@@ -139,18 +145,8 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     }
   },
 
-  openBook: (id, from, opts) => {
-    const view = get().view;
-    set({
-      view: {
-        kind: "reader",
-        bookId: id,
-        returnTo: view.kind === "reader" ? view.returnTo : view,
-        origin: originOf(from),
-        readerTheme: opts?.readerTheme,
-      },
-    });
-  },
+  openBook: (id, from, opts) => openReader({ kind: "book", id }, from, opts),
+  openStream: (provider, id, from) => openReader({ kind: "stream", provider, id }, from),
   openEdition: (id, theme) => {
     const view = get().view;
     set({ view: { kind: "edition", id, theme }, editionReturn: view.kind === "reader" ? "home" : sectionOf(view) });
@@ -169,6 +165,19 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   },
   dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
 }));
+
+function openReader(target: ReaderTarget, from?: Element | null, opts?: { readerTheme?: string }) {
+  const view = useLibrary.getState().view;
+  useLibrary.setState({
+    view: {
+      kind: "reader",
+      target,
+      returnTo: view.kind === "reader" ? view.returnTo : view,
+      origin: originOf(from),
+      readerTheme: opts?.readerTheme,
+    },
+  });
+}
 
 function summarize(report: ImportReport, toast: LibraryState["toast"]) {
   const parts: string[] = [];

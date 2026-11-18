@@ -63,3 +63,60 @@ export async function renderPage(page: PdfPage, canvas: HTMLCanvasElement, cssWi
   if (!ctx) throw new Error("2D canvas unavailable");
   await page.render({ canvas, canvasContext: ctx, viewport }).promise;
 }
+
+/**
+ * Lays pdf.js's invisible, selectable text over a rendered page, so text can
+ * be selected, copied and highlighted. Returns a cancel function.
+ */
+export function renderTextLayer(page: PdfPage, container: HTMLElement, cssWidth: number): () => void {
+  const base = page.getViewport({ scale: 1 });
+  const viewport = page.getViewport({ scale: cssWidth / base.width });
+  container.replaceChildren();
+  container.style.setProperty("--total-scale-factor", String(viewport.scale));
+  const layer = new pdfjs.TextLayer({ textContentSource: page.streamTextContent(), container, viewport });
+  layer.render().catch((e: unknown) => {
+    if (!(e instanceof Error && e.name === "AbortException")) console.warn("text layer", e);
+  });
+  return () => layer.cancel();
+}
+
+/** A link on a page, with its box normalised to the page (0..1). */
+export type PdfLink = { x: number; y: number; w: number; h: number; url?: string; dest?: unknown };
+
+export async function pageLinks(page: PdfPage): Promise<PdfLink[]> {
+  const vp = page.getViewport({ scale: 1 });
+  const annotations: Array<{ subtype?: string; rect?: number[]; url?: string; unsafeUrl?: string; dest?: unknown }> =
+    await page.getAnnotations({ intent: "display" });
+  return annotations
+    .filter((a) => a.subtype === "Link" && a.rect && (a.url || a.dest))
+    .map((a) => {
+      const [x1, y1] = vp.convertToViewportPoint(a.rect![0], a.rect![1]);
+      const [x2, y2] = vp.convertToViewportPoint(a.rect![2], a.rect![3]);
+      return {
+        x: Math.min(x1, x2) / vp.width,
+        y: Math.min(y1, y2) / vp.height,
+        w: Math.abs(x2 - x1) / vp.width,
+        h: Math.abs(y2 - y1) / vp.height,
+        url: a.url,
+        dest: a.dest,
+      };
+    });
+}
+
+/**
+ * Where an internal link goes: a page number and how far down it the target
+ * sits (0..1), from a named or explicit PDF destination.
+ */
+export async function resolveDestination(doc: PdfDocument, dest: unknown): Promise<{ page: number; y: number } | null> {
+  const explicit = typeof dest === "string" ? await doc.getDestination(dest) : dest;
+  if (!Array.isArray(explicit) || explicit.length < 2) return null;
+  const [ref, mode, ...args] = explicit as [unknown, { name?: string } | null, ...Array<number | null>];
+  const index = typeof ref === "number" ? ref : await doc.getPageIndex(ref as Parameters<PdfDocument["getPageIndex"]>[0]);
+  const name = mode?.name;
+  const top = name === "XYZ" ? args[1] : name === "FitH" || name === "FitBH" ? args[0] : name === "FitR" ? args[3] : null;
+  if (typeof top !== "number") return { page: index + 1, y: 0 };
+  const page = await doc.getPage(index + 1);
+  const vp = page.getViewport({ scale: 1 });
+  const [, y] = vp.convertToViewportPoint(0, top);
+  return { page: index + 1, y: Math.min(1, Math.max(0, y / vp.height)) };
+}

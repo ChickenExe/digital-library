@@ -1,0 +1,83 @@
+/* Invisible: catches the click that dismisses a card (also over the book's iframe). */
+.scrim { position: absolute; inset: 0; z-index: 40; }
+
+.float {
+  position: fixed;
+  z-index: 41;
+  color: var(--r-text);
+  background: color-mix(in srgb, var(--r-bg) 90%, var(--r-text));
+  border-radius: 12px;
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, var(--r-text) 12%, transparent);
+}
+
+.menu { display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 999px; }
+.divider { width: 1px; height: 20px; margin: 0 4px; background: color-mix(in srgb, var(--r-text) 16%, transparent); }
+
+.swatches { display: flex; gap: 4px; }
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--r-text) 18%, transparent) inset;
+  transition: transform 140ms ease;
+}
+.swatch:hover { transform: scale(1.1); }
+.swatch.on { box-shadow: 0 0 0 2px var(--r-bg), 0 0 0 4px var(--r-accent); }
+
+.action {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--r-muted);
+}
+.action:hover { color: var(--r-text); background: color-mix(in srgb, var(--r-text) 8%, transparent); }
+.danger:hover { color: var(--r-accent); }
+
+.card { width: min(380px, calc(100vw - 24px)); padding: 12px; }
+.cardHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cardTools { display: flex; }
+.noteInput {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  resize: vertical;
+  border: none;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--r-text) 6%, transparent);
+  color: var(--r-text);
+  font: 14px/1.5 "Reader Literata", Georgia, serif;
+}
+.noteInput:focus { outline: 2px solid color-mix(in srgb, var(--r-accent) 60%, transparent); }
+.noteInput::placeholder { color: var(--r-muted); }
+
+.footnote { padding: 14px 16px 10px; }
+.label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--r-accent); }
+.noteBody {
+  max-height: min(300px, 45vh);
+  overflow-y: auto;
+  margin: 8px 0 6px;
+  font: 15px/1.55 "Reader Literata", Georgia, serif;
+  hyphens: auto;
+}
+.noteBody p { margin: 0 0 0.6em; }
+.noteBody p:last-child { margin-bottom: 0; }
+.noteBody :is(ul, ol) { margin: 0 0 0.6em; padding-left: 1.3em; }
+.noteBody blockquote { margin: 0 0 0.6em; padding-left: 0.8em; border-left: 2px solid color-mix(in srgb, var(--r-text) 20%, transparent); }
+.previewBody { margin: 10px 0 6px; }
+.go {
+  display: block;
+  margin-left: auto;
+  padding: 6px 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--r-muted);
+}
+.go:hover { color: var(--r-accent); }

@@ -9,6 +9,10 @@
   transition: opacity 260ms ease;
 }
 .scrolled { padding-bottom: 0; }
+/* epub.js draws highlights in an SVG laid over the page. Blending that whole layer
+   onto the page makes them behave like ink: multiply on paper, screen on dark pages. */
+.epub :global(.epub-view) > svg { mix-blend-mode: multiply; }
+.epub[data-ink="screen"] :global(.epub-view) > svg { mix-blend-mode: screen; }
 .turn { display: flex; align-items: center; color: transparent; font-size: 22px; }
 .turn:first-child { justify-content: flex-end; padding-right: 28px; }
 .turn:last-child { justify-content: flex-start; padding-left: 28px; }
@@ -28,6 +32,57 @@
   gap: var(--space-6);
   padding: 72px 0 var(--space-12);
 }
-.pdfPage { flex: none; background: #fff; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.25); }
-.pdfPage canvas { display: block; }
+.pdfPage { position: relative; flex: none; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.25); }
+/* The theme filter applies to the page image only, so highlights keep their true colours. */
+.pdfSheet { position: absolute; inset: 0; background: #fff; }
+.pdfSheet canvas { display: block; }
+.pdfMarks { position: absolute; inset: 0; pointer-events: none; }
+.pdfMarks i { position: absolute; border-radius: 2px; }
+.pdfLink { position: absolute; z-index: 2; border-radius: 2px; cursor: pointer; }
+.pdfLink:hover { background: color-mix(in srgb, var(--r-accent) 14%, transparent); }
+
+/* pdf.js text layer: invisible, selectable text positioned over the page (after pdf_viewer.css). */
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  z-index: 1;
+  line-height: 1;
+  text-align: initial;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  user-select: text;
+}
+.textLayer > :not(:global(.markedContent)),
+.textLayer :global(.markedContent) span:not(:global(.markedContent)) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.textLayer :global(.markedContent) { display: contents; }
+.textLayer span[role="img"] { user-select: none; cursor: default; }
+.textLayer ::selection { background: color-mix(in srgb, var(--r-accent) 30%, transparent); color: transparent; }
+.textLayer :global(.endOfContent) { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; user-select: none; }
+
+/* Link preview inside a popover: a window onto the destination page. */
+.preview { position: relative; overflow: hidden; width: 380px; max-width: 100%; border-radius: 4px; background: #fff; }
+.preview canvas { display: block; }
 .pdf::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--r-text) 25%, transparent); border-color: var(--r-bg); }

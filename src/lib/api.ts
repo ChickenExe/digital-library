@@ -20,6 +20,11 @@ import type { DownloadProgress } from "../bindings/DownloadProgress";
 import type { CollectionSet } from "../bindings/CollectionSet";
 import type { Edition } from "../bindings/Edition";
 import type { EditionSummary } from "../bindings/EditionSummary";
+import type { Annotation } from "../bindings/Annotation";
+import type { AnnotationPatch } from "../bindings/AnnotationPatch";
+import type { NewAnnotation } from "../bindings/NewAnnotation";
+import type { StreamedBook } from "../bindings/StreamedBook";
+import type { StreamStatus } from "../bindings/StreamStatus";
 
 /** Shape of every error a command can reject with (see `src-tauri/src/error.rs`). */
 export type AppError = {
@@ -49,6 +54,19 @@ export const api = {
   saveLocations: (id: string, charsPer: number, data: string) =>
     invoke<void>("save_locations", { id, charsPer, data }),
 
+  // Highlights and notes (`bookRef`: a library id, or "<provider>/<id>" while streaming)
+  listAnnotations: (bookRef: string) => invoke<Annotation[]>("list_annotations", { bookRef }),
+  addAnnotation: (annotation: NewAnnotation) => invoke<Annotation>("add_annotation", { annotation }),
+  updateAnnotation: (id: string, patch: AnnotationPatch) => invoke<Annotation>("update_annotation", { id, patch }),
+  deleteAnnotation: (id: string) => invoke<void>("delete_annotation", { id }),
+
+  // Reading on demand
+  streamOpen: (provider: string, id: string) => invoke<StreamedBook>("stream_open", { provider, id }),
+  streamClose: (key: string, keepMinutes: number) => invoke<void>("stream_close", { key, keepMinutes }),
+  streamStatus: (key: string) => invoke<StreamStatus>("stream_status", { key }),
+  streamSaveProgress: (provider: string, id: string, locator: string, percent: number) =>
+    invoke<void>("stream_save_progress", { provider, id, locator, percent }),
+
   // Discover
   catalogStatus: () => invoke<CatalogStatus>("catalog_status"),
   catalogSync: (force = false) => invoke<void>("catalog_sync", { force }),
@@ -75,6 +93,14 @@ export const events = {
 
 /** URL of the book file, served by the `book://` protocol (http://book.localhost on Windows). */
 export const bookUrl = (id: string) => convertFileSrc(id, "book");
+
+/**
+ * Base URL of a streamed book's files (`stream://localhost/<key>/`, or
+ * `http://stream.localhost/<key>/` on Windows). epub.js resolves the book's
+ * paths against it, so the slashes must stay real slashes.
+ */
+export const streamBaseUrl = (key: string) =>
+  `${convertFileSrc("", "stream")}${key.split("/").map(encodeURIComponent).join("/")}/`;
 
 /** Covers are served as thumbnails sized for this screen's pixel density. */
 const THUMB_WIDTH = window.devicePixelRatio > 1.34 ? 360 : 240;

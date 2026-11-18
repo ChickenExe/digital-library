@@ -49,3 +49,27 @@ export function GetButton({ entry, large, variant = "primary" }: Props) {
     </button>
   );
 }
+
+/**
+ * Read a listing straight away without adding it to the library: the book is
+ * streamed (only what you read is downloaded) and discarded a while after you
+ * close it. Hidden once the book is owned; "Read" covers that.
+ */
+export function ReadNowButton({ entry, large }: { entry: CatalogEntry; large?: boolean }) {
+  const openStream = useLibrary((s) => s.openStream);
+  const closeListing = useDiscover((s) => s.closeListing);
+  if (entry.ownedBookId) return null;
+  return (
+    <button
+      className={`btn${large ? " btn-lg" : ""}`}
+      title="Read without downloading: pages are fetched as you read and cleared after you close the book"
+      onClick={(e) => {
+        e.stopPropagation();
+        openStream(entry.provider, entry.id, e.currentTarget);
+        closeListing();
+      }}
+    >
+      Read now
+    </button>
+  );
+}

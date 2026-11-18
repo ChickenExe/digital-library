@@ -7,7 +7,7 @@ import { EASE, prefersReducedMotion, SPRING } from "../../lib/motion";
 import type { Origin } from "../../store/library";
 import { useDiscover } from "../../store/discover";
 import { CatalogCover } from "./CatalogCover";
-import { GetButton } from "./GetButton";
+import { GetButton, ReadNowButton } from "./GetButton";
 import styles from "./ListingSheet.module.css";
 
 const LANGUAGE_NAMES = new Intl.DisplayNames(["en"], { type: "language" });
@@ -78,6 +78,7 @@ export function ListingSheet() {
             <div className={`${styles.author} mono`}>{authorLine(entry)}</div>
             <div className={styles.actions}>
               <GetButton entry={entry} large />
+              <ReadNowButton entry={entry} large />
             </div>
           </m.div>
         </div>

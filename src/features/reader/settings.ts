@@ -158,3 +158,22 @@ img, svg { max-width: 100% !important; height: auto !important; ${t.dark ? "filt
 ::selection { background: ${t.accent}40; }
 `;
 }
+
+/**
+ * Highlighter inks. On light pages they multiply into the paper like a real
+ * marker; on dark pages they're deeper shades that *screen* over the page, so
+ * the text stays readable on top.
+ */
+export const HIGHLIGHTS = {
+  yellow: { label: "Yellow", light: "#f4d35e", dark: "#8c7a1f" },
+  green: { label: "Green", light: "#a8d88a", dark: "#3f7038" },
+  blue: { label: "Blue", light: "#9cc9f0", dark: "#2f5f8e" },
+  pink: { label: "Pink", light: "#f4a8c6", dark: "#8c3f62" },
+} as const;
+
+export type HighlightInk = { color: string; blend: "multiply" | "screen"; opacity: number };
+
+export function highlightInk(color: keyof typeof HIGHLIGHTS, dark: boolean): HighlightInk {
+  const c = HIGHLIGHTS[color];
+  return dark ? { color: c.dark, blend: "screen", opacity: 0.85 } : { color: c.light, blend: "multiply", opacity: 0.8 };
+}

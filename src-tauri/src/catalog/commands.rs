@@ -16,6 +16,7 @@ use crate::error::{AppError, AppResult};
 use crate::import::{self, Outcome};
 use crate::models::Book;
 use crate::state::AppState;
+use crate::stream::StreamState;
 
 pub const CATALOG_DOWNLOAD: &str = "catalog-download";
 const DETAIL_TTL_MS: i64 = 30 * 24 * 60 * 60 * 1000;
@@ -157,18 +158,29 @@ pub async fn catalog_acquire(app: AppHandle, provider: String, id: String) -> Ap
     }
 
     let file = library.paths.incoming.join(format!("{provider}-{id}-{}.epub", uuid::Uuid::now_v7()));
+    // If the book is being read on demand, keep exactly that file, so the
+    // reading position and highlights (CFIs) carry over unchanged.
+    let streamed = app.state::<StreamState>().get(&format!("{provider}/{id}"));
     let result = async {
-        download(&app, &provider, &id, &file).await?;
+        match streamed.as_ref().and_then(|s| s.temp_file.clone()) {
+            Some(copy) => {
+                tokio::fs::copy(&copy, &file).await?;
+            }
+            None => download(&app, &provider, &id, &file, streamed.as_ref().map(|s| s.url.clone())).await?,
+        }
         let worker = app.clone();
         let path = file.clone();
         let origin = Origin { provider: provider.clone(), id: id.clone() };
         tauri::async_runtime::spawn_blocking(move || -> AppResult<Book> {
             let state = worker.state::<AppState>();
             let mut conn = state.conn()?;
-            match import::import_file(&mut conn, &state.paths, &path, Some(origin))? {
-                Outcome::Imported(book) => Ok(book),
-                Outcome::Duplicate(existing) => books::get(&conn, &existing),
-            }
+            let book_id = match import::import_file(&mut conn, &state.paths, &path, Some(origin.clone()))? {
+                Outcome::Imported(book) => book.id,
+                Outcome::Duplicate(existing) => existing,
+            };
+            // Notes and the reading position from reading it on demand move to the library copy.
+            books::adopt_stream(&mut conn, &origin.provider, &origin.id, &book_id)?;
+            books::get(&conn, &book_id)
         })
         .await
         .map_err(|e| AppError::Invalid(e.to_string()))?
@@ -181,10 +193,12 @@ pub async fn catalog_acquire(app: AppHandle, provider: String, id: String) -> Ap
     Ok(book)
 }
 
-async fn download(app: &AppHandle, provider: &str, id: &str, target: &Path) -> AppResult<()> {
+/// `preferred` is tried first (the file a streamed copy was read from).
+async fn download(app: &AppHandle, provider: &str, id: &str, target: &Path, preferred: Option<String>) -> AppResult<()> {
     let http = &app.state::<CatalogState>().http;
     let mut last_err: Option<AppError> = None;
-    for source in gutenberg::epub_sources(id) {
+    let preferred = preferred.map(|url| gutenberg::EpubSource { url, max_bytes: None });
+    for source in preferred.into_iter().chain(gutenberg::epub_sources(id)) {
         let url = &source.url;
         let response = match http.get(url).send().await {
             Ok(r) if r.status().is_success() => r,

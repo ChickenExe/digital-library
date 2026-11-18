@@ -47,6 +47,8 @@ type DiscoverState = {
    */
   acquire: (entry: CatalogEntry, opts?: { openAfter?: boolean; quiet?: boolean }) => Promise<string | null>;
   onDownloadProgress: (p: DownloadProgress) => void;
+  /** A listing became a library book outside `acquire` (e.g. kept while streaming it). */
+  noteOwned: (provider: string, id: string, bookId: string) => void;
 };
 
 let browseSeq = 0;
@@ -168,6 +170,8 @@ export const useDiscover = create<DiscoverState>((set, get) => ({
       set({ downloads: rest });
     }
   },
+
+  noteOwned: (provider, id, bookId) => markOwned(set, get, { provider, id } as CatalogEntry, bookId),
 
   onDownloadProgress: (p) => {
     const key = listingKey(p);

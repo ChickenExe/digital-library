@@ -1,0 +1,60 @@
+.scrim { position: absolute; inset: 0; z-index: 25; background: rgba(0, 0, 0, 0.25); }
+.panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  width: min(400px, 90vw);
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--r-bg) 94%, var(--r-text));
+  color: var(--r-text);
+  box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.5);
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  padding: 64px 24px 14px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--r-muted);
+  border-bottom: 1px solid color-mix(in srgb, var(--r-text) 12%, transparent);
+}
+.tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 20px 4px; }
+.filter { display: flex; padding: 3px; border-radius: 9px; background: color-mix(in srgb, var(--r-text) 7%, transparent); }
+.filter button { height: 26px; padding: 0 10px; border-radius: 7px; font-size: 12px; color: var(--r-muted); }
+.filter .on { background: var(--r-bg); color: var(--r-text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+.copy { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--r-muted); }
+.copy:hover { color: var(--r-accent); }
+
+.empty { padding: 28px 24px; color: var(--r-muted); font: 15px/1.55 "Reader Literata", Georgia, serif; }
+.list { list-style: none; margin: 0; padding: 8px 0 32px; overflow-y: auto; flex: 1; }
+.list button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 24px 12px 22px;
+  text-align: left;
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+.list button:hover { background: color-mix(in srgb, var(--r-text) 6%, transparent); }
+.meta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--r-muted); }
+.quote {
+  font: 15px/1.45 "Reader Literata", Georgia, serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--r-text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--r-text) 6%, transparent);
+  white-space: pre-wrap;
+}

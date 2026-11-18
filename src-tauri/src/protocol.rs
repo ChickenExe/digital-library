@@ -83,7 +83,7 @@ pub fn handle<R: Runtime>(
 
 type Resp = Response<Vec<u8>>;
 
-fn base(code: StatusCode) -> tauri::http::response::Builder {
+pub(crate) fn base(code: StatusCode) -> tauri::http::response::Builder {
     Response::builder()
         .status(code)
         .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")

@@ -17,6 +17,7 @@ the pixels. They talk through a small, typed command API.
 ┌───────────────▼────────────────────────────────────────┴──────────┴─────────┐
 │  Rust core (src-tauri/src)                                                  │
 │  protocol.rs   book:// cover:// catalog-cover:// — files by id, cached covers│
+│  stream/       stream:// — catalog books read on demand (HTTP ranges → zip)  │
 │  catalog/      Discover: provider sync → catalog.db, details, acquisition   │
 │  commands.rs   thin command handlers, emit `library-changed`                │
 │  import/       hash → dedupe → extract (epub.rs / pdf.rs) → copy → insert   │
@@ -31,6 +32,7 @@ the pixels. They talk through a small, typed command API.
           %LOCALAPPDATA%\dev.digitallibrary.app\   (cache — safe to delete)
             catalog.db                  index of remote catalogs (rebuildable)
             catalog-covers\             cached remote covers
+            streams\                    temporary copies of books read on demand
 ```
 
 ## Key decisions
@@ -51,6 +53,9 @@ the pixels. They talk through a small, typed command API.
 | **A separate, calm reader** | The library is loud; the reader is deliberately quiet. Its four themes avoid pure black on white, and Night uses soft text against glare. Typefaces are Literata and Atkinson Hyperlegible, with a 60–75 character measure, ragged right and hyphenation. Controls auto-hide. Settings live in `features/reader/settings.ts` and are injected into the EPUB iframe as a stylesheet, or applied as a filter to PDF pages. |
 | **Motion system (`lib/motion.ts`)** | One vocabulary for every tween, derived from the Index shape language. The house curve is expo-out (fast start, long settle). Moves are axis-true slides, never wobbles, and there's no bouncy overshoot. Type rises out of masks, hairlines draw, the black pills travel between options, and tilted cards are "dealt". Motion (the framer-motion successor) handles enter/exit, layout and shared pills. Simple on-mount effects are CSS keyframes (`.rise-in`, `.draw-rule`). The cover → listing flight is a hand-rolled FLIP with a portalled ghost: one element instead of hundreds of layout-tracked cards. The reader opens as a `clip-path` window out of the clicked cover and only loads the book once open, so parsing never drops animation frames. Everything respects the OS "reduce motion" setting. |
 | **Permanent volume numbers** | Each import takes the next number from a counter (migration 0003), so "No. 042" never changes, even after deletions. |
+| **Footnotes open in place** | Note links are caught before epub.js navigates (a capture-phase click listener in the book's frame). The note is found by id, in the same chapter or by loading another one, and copied into a popover through a whitelist of plain formatting tags. Book HTML is untrusted, so it never enters the app's document raw. |
+| **Highlights as data, not markup** | EPUB highlights are CFI ranges drawn by epub.js's marks layer; PDF highlights are page rects normalised to 0..1, so they survive any zoom. Neither touches the book file. |
+| **Streaming through the zip directory** | An EPUB is a zip, and zips keep their directory at the end. Reading the directory with HTTP range requests, then only the entries epub.js asks for, means a 25 MB illustrated edition opens after ~0.3 MB. No new dependency: a `Read + Seek` adapter over ranges feeds the existing `zip` crate. |
 | **Sets** | Curated groups (an author's novels, a canon) defined in `catalog/sets.rs` by Gutenberg id. Ownership comes from the library's `source_*` columns, so getting a book from Discover fills its slot. |
 
 ## Data model
@@ -60,7 +65,14 @@ books ──< book_authors >── authors
   │
   ├── reading_progress (1:1)    locator = EPUB CFI or PDF page number, percent 0..1
   └── books_fts (FTS5)          title · authors · description
+
+annotations                     book_ref = a book id, or "<provider>/<id>" for a streamed book
+stream_progress                 (provider, source_id) → locator, percent for streamed books
 ```
+
+- `annotations.locator` is an EPUB CFI range, or for PDFs JSON `{"page":n,"rects":[[page,x,y,w,h],…]}` with
+  coordinates normalised to the page. `book_ref` is deliberately not a foreign key, because notes on a streamed book
+  exist before (and without) a library row. Deleting a book deletes its notes in the same transaction.
 
 - Ids are **UUIDv7** (time-ordered, so they also index well).
 - `cover_state`: `present` (file exists), `pending` (the frontend should render one, used for PDFs), or `missing` (show a placeholder).
@@ -82,6 +94,37 @@ If any step fails, the copied files are removed. Progress streams over the `impo
 - PDF goes to pdf.js in continuous scroll. Every page gets a correctly sized placeholder, and only pages near the viewport are rasterised.
 
 Position changes are debounced and saved with `save_progress`.
+
+**Footnotes and citations.** EPUB: a link is a note reference when the book marks it (`epub:type`
+`noteref`/`biblioref`/`glossref`, or the matching `doc-*` ARIA roles) or when it looks like one: a short marker
+such as `12`, `[3]`, `*` or `†`, often superscript, or classes/targets naming a footnote (Gutenberg's
+`fnanchor` → `#Footnote_1_1`). The target's note container is found (an `aside`, list item, `.footnote`, or the
+paragraph around a bare anchor), back-links are dropped, and the text is shown in a popover with "Go to note".
+Other internal links still navigate; web links open in the browser. Logic lives in `features/reader/footnotes.ts`.
+PDF: each rendered page gets a link layer from pdf.js annotations; an internal link resolves its destination and
+the popover shows a zoomed crop of that spot ("Go to page n" jumps there).
+
+**Highlights and notes.** Selecting text shows a menu (four inks, Note, Copy). EPUB selections come from
+epub.js's `selected` event as CFI ranges; PDFs get pdf.js's invisible text layer for selection, and the
+selection's client rects are merged per line and normalised to the page. Inks multiply on light pages and screen
+on dark ones (the whole marks layer is blended, so text stays crisp). Clicking a highlight opens a card to recolour,
+annotate or delete it; notes autosave. The Notes panel lists everything in reading order and copies it as Markdown.
+
+**Reading on demand.** "Read now" in a listing opens `stream_open(provider, id)`. Rust tries the same EPUB
+sources, in the same order, as "Get", asking each for `bytes=0-0`:
+- `206 Partial Content`: the file is read in place through `stream/range.rs`, a `Read + Seek` over HTTP ranges
+  with 64 KB blocks, a 4-block read-ahead and a 64 MB per-book block cache. `zip::ZipArchive` reads the
+  central directory through it, and each `stream://localhost/<provider>/<id>/<entry>` request decompresses
+  just that entry (same 64 MB zip-bomb cap as import).
+- `200`: the server ignores ranges, so the whole file goes to a temporary copy in the cache dir.
+
+epub.js opens the book as a directory URL, so it requests the container, package, navigation and the chapters you
+open, and nothing else. It never builds a full location map for a streamed book (that would download all of it),
+so progress is estimated by chapter. Closing calls `stream_close(key, keep_minutes)`, and a sweeper drops sessions
+(and temporary copies) once they've been closed that long. The streams folder is emptied on launch. Reading position
+(`stream_progress`) and notes (`book_ref = "<provider>/<id>"`) are kept. "Keep" runs the normal acquire, reusing
+the streamed file's URL (or its temporary copy) so CFIs stay valid, then `adopt_stream` moves notes and position
+to the new library book in one transaction.
 
 **Discover.** On launch, a stale or empty catalog triggers a background sync, reported through `catalog-status` events:
 1. Download `pg_catalog.csv.gz`, using `If-Modified-Since` so an unchanged catalog is skipped.
@@ -171,13 +214,20 @@ What does it:
 ## Security posture
 
 - Strict CSP: no remote origins, no inline scripts, and EPUB scripts are disabled (`allowScriptedContent: false`).
+  Footnote content is rebuilt from a tag whitelist, never inserted as HTML. Links from books and PDFs open
+  externally only for `http(s):` and `mailto:`.
+- `stream://` only serves entries of books the user has opened (looked up by session, never by URL), rejects `..`
+  paths, and never serves book scripts as script.
 - Capabilities grant only `core:default`, the window controls the custom title bar needs, `dialog:allow-open`, `dialog:allow-ask`, `log:default` and `opener:allow-open-url`. There is no general filesystem or shell access from the UI.
 - All network access happens in Rust. Listing ids are validated before URLs are built, downloads are size-capped, and the User-Agent identifies the app, never the user.
 - Stored file names are validated before joining paths, so path traversal is rejected. Zip entries are size-capped when reading EPUBs, to defuse zip bombs.
 
 ## Testing
 
-- `npm test` runs the Rust unit and integration tests: EPUB parsing (EPUB 2 and 3 covers, roles, entities, CDATA, ISBN), repository queries and FTS, sort-name rules, path safety, and a full import with de-duplication against a temp dir. Catalog tests cover the Gutenberg CSV, author-name and OPDS parsing, and ranking, browsing and search blending.
+- `npm test` runs the Rust unit and integration tests. They cover annotations (create, update, clear, re-key on
+  "Keep", delete with the book) and streaming (range reader correctness, opening a chapter without fetching the whole
+  file, cache reuse, expiry, temp-file cleanup, path validation). `cargo test -- --ignored streams_from_the_mirror`
+  streams a real 25 MB book from the Gutenberg mirror and checks only ~1% is fetched. Also: EPUB parsing (EPUB 2 and 3 covers, roles, entities, CDATA, ISBN), repository queries and FTS, sort-name rules, path safety, and a full import with de-duplication against a temp dir. Catalog tests cover the Gutenberg CSV, author-name and OPDS parsing, and ranking, browsing and search blending.
 - `npm run typecheck` checks the UI against the generated bindings.
 - CI (`.github/workflows/windows.yml`) builds and tests on `windows-latest` and uploads the `.msi` and NSIS installers.
 
@@ -187,6 +237,7 @@ What does it:
 1. ~~Visual design~~ ✓ Direction C is implemented. Next polish: a custom title bar (`decorations: false`), page-turn and card-deck motion, and a dark variant of the UI.
 2. Book detail panel and metadata editing (title, authors, cover replacement).
 3. Collections / custom shelves.
-4. Reader settings: font, size, theme, margins, scroll vs. paged. Also a table of contents, plus highlights and notes.
+4. ~~Reader settings, table of contents, highlights and notes, footnotes, reading on demand~~ ✓. Next: notes
+   search across books, and sync once accounts exist.
 5. Windows file associations for `.epub` and `.pdf` (launch-arg import is already in place).
 6. Auto-update via the Tauri updater plugin and code-signed installers.
