@@ -14,6 +14,7 @@ import styles from "./ReaderView.module.css";
 // Each reader pulls in a large rendering engine; load them on demand.
 const EpubReader = lazy(() => import("./EpubReader").then((m) => ({ default: m.EpubReader })));
 const PdfReader = lazy(() => import("./PdfReader").then((m) => ({ default: m.PdfReader })));
+const FoliateReader = lazy(() => import("./FoliateReader").then((m) => ({ default: m.FoliateReader })));
 
 export type ReadingInfo = { chapter?: string; minutesLeft?: number };
 /** Readers report position through this; we persist it (debounced) to SQLite. */
@@ -210,6 +211,9 @@ export function ReaderView({ bookId, origin, readerTheme }: Props) {
           )}
           {opened && book?.format === "pdf" && (
             <PdfReader book={book} initialLocator={book.progress?.locator} onProgress={onProgress} />
+          )}
+          {opened && book && book.format !== "epub" && book.format !== "pdf" && (
+            <FoliateReader book={book} initialLocator={book.progress?.locator} onProgress={onProgress} onContents={onContents} />
           )}
         </Suspense>
       </div>

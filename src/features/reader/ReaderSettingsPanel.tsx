@@ -22,7 +22,7 @@ const LEADING_LABELS = ["Compact", "Comfortable", "Airy"];
 export function ReaderSettingsPanel({ format, onClose }: { format: BookFormat; onClose: () => void }) {
   const s = useReaderSettings();
   const effective = useEffectiveTheme();
-  const reflowable = format === "epub";
+  const reflowable = format !== "pdf" && format !== "cbz";
 
   return (
     <>

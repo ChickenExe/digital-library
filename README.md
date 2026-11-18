@@ -22,14 +22,18 @@ React/TypeScript UI), targeting **Windows** first.
 - **Discover:** browse and search 70,000+ free public-domain books from Project Gutenberg,
   with curated rows, popularity ranking, summaries and one-click "Get" into your library
 
-- Import EPUB and PDF files via a picker, by dragging files or folders onto the window,
+- Read whatever you bring: EPUB, PDF, Kindle (MOBI, AZW, AZW3, PRC), FictionBook (FB2, FBZ),
+  comics (CBZ) and plain text (TXT, converted to a proper paginated book on import).
+  DRM-protected files (Kindle, Adobe, Readium LCP) are detected and reported rather than half-opened
+- Import via a picker, by dragging files or folders onto the window,
   or by passing them as command-line arguments (how Windows "Open with" works)
 - Metadata extraction (title, authors, description, language, ISBN, page count)
-- Cover extraction from EPUBs; first-page covers for PDFs; generated placeholders otherwise
+- Cover extraction from EPUB, Kindle, FB2 and comic files; first-page covers for PDFs; generated placeholders otherwise
 - Duplicate detection by content hash
 - Instant full-text search across title, author and description (accent-insensitive)
 - Shelves: All, Continue reading, Favorites, Finished; filter by format; four sort orders
-- Built-in readers: paginated EPUB (two-page spread) and continuous-scroll PDF
+- Built-in readers: paginated or scrolling EPUB, continuous-scroll PDF, and foliate-js for
+  Kindle, FB2 and comics, all themed by the same reader settings
 - Reading position saved automatically and restored when you reopen a book
 
 ## Download (Windows)

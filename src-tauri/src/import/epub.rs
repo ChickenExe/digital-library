@@ -15,7 +15,7 @@ use super::{Cover, Extracted};
 use crate::error::{AppError, AppResult};
 
 /// Cap on any single entry we decompress, to defuse zip bombs.
-const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
+pub(super) const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 
 pub fn extract(path: &Path) -> AppResult<Extracted> {
     let file = BufReader::new(File::open(path)?);
@@ -25,6 +25,7 @@ pub fn extract(path: &Path) -> AppResult<Extracted> {
 pub fn extract_from<R: Read + Seek>(reader: R) -> AppResult<Extracted> {
     let mut zip = zip::ZipArchive::new(reader).map_err(|e| AppError::Parse(e.to_string()))?;
 
+    check_drm(&mut zip)?;
     let container = read_entry(&mut zip, "META-INF/container.xml")?;
     let opf_path = find_rootfile(&container)
         .ok_or_else(|| AppError::Parse("container.xml has no rootfile".into()))?;
@@ -49,6 +50,31 @@ pub fn extract_from<R: Read + Seek>(reader: R) -> AppResult<Extracted> {
         page_count: None,
         cover,
     })
+}
+
+/// Adobe ADEPT and Readium LCP books are encrypted and can't be rendered.
+/// (`encryption.xml` alone is fine when it only covers obfuscated fonts.)
+fn check_drm<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> AppResult<()> {
+    let locked = || {
+        Err(AppError::Unsupported(
+            "this EPUB is DRM-protected (Adobe or Readium LCP), so it can't be opened here".into(),
+        ))
+    };
+    if zip.by_name("META-INF/license.lcpl").is_ok() || zip.by_name("META-INF/rights.xml").is_ok() {
+        return locked();
+    }
+    if let Ok(xml) = read_entry(zip, "META-INF/encryption.xml") {
+        let xml = String::from_utf8_lossy(&xml);
+        let fonts_only = xml.match_indices("Algorithm=").all(|(at, _)| {
+            let value = &xml[at + 11..];
+            value.starts_with("http://www.idpf.org/2008/embedding")
+                || value.starts_with("http://ns.adobe.com/pdf/enc#RC")
+        });
+        if !fonts_only {
+            return locked();
+        }
+    }
+    Ok(())
 }
 
 fn read_entry<R: Read + Seek>(zip: &mut zip::ZipArchive<R>, name: &str) -> AppResult<Vec<u8>> {
@@ -277,12 +303,12 @@ fn parse_opf(xml: &[u8]) -> AppResult<Package> {
     Ok(pkg)
 }
 
-fn local(e: &BytesStart<'_>) -> String {
+pub(super) fn local(e: &BytesStart<'_>) -> String {
     e.local_name().as_ref().to_string()
 }
 
 /// Attributes keyed by local name (`opf:role` -> `role`).
-fn attrs(e: &BytesStart<'_>) -> HashMap<String, String> {
+pub(super) fn attrs(e: &BytesStart<'_>) -> HashMap<String, String> {
     e.attributes()
         .flatten()
         .filter_map(|a| {
@@ -297,12 +323,12 @@ fn attr(e: &BytesStart<'_>, name: &str) -> Option<String> {
     attrs(e).remove(name)
 }
 
-fn collapse_ws(s: &str) -> String {
+pub(super) fn collapse_ws(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Descriptions are often HTML; we store plain text and let the UI style it.
-fn strip_html(s: &str) -> String {
+pub(super) fn strip_html(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut in_tag = false;
     for c in s.chars() {

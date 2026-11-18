@@ -61,7 +61,7 @@ jobs:
           releaseName: Digital Library v__VERSION__
           releaseBody: |
             **Digital Library for Windows.** A collector's ebook library: free classics from Project Gutenberg,
-            your own EPUBs and PDFs, collected editions, and a calm reader.
+            your own EPUB, PDF, Kindle (MOBI/AZW3), FB2, comic (CBZ) and TXT files, collected editions, and a calm reader.
 
             **Download:** `…_x64-setup.exe` (recommended installer), `…_x64_en-US.msi`, or the portable `.exe`
             (no install; needs the WebView2 runtime, included with Windows 10/11).

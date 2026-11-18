@@ -12,7 +12,9 @@
 .turn { display: flex; align-items: center; color: transparent; font-size: 22px; }
 .turn:first-child { justify-content: flex-end; padding-right: 28px; }
 .turn:last-child { justify-content: flex-start; padding-left: 28px; }
-.turn:hover { color: var(--r-muted); }
+.turn:hover, .turn:focus-visible { color: var(--r-muted); }
+/* Page-turn margins are huge hit areas; a focus ring around one reads as a stray line. */
+.turn:focus-visible { outline: none; }
 .turn span { transition: transform 200ms ease; }
 .turn:first-child:hover span { transform: translateX(-4px); }
 .turn:last-child:hover span { transform: translateX(4px); }

@@ -25,6 +25,9 @@ const FORMATS: { id: BookFormat | undefined; label: string }[] = [
   { id: undefined, label: "Any format" },
   { id: "epub", label: "EPUB" },
   { id: "pdf", label: "PDF" },
+  { id: "mobi", label: "Kindle" },
+  { id: "fb2", label: "FB2" },
+  { id: "cbz", label: "Comics" },
 ];
 const SORTS: { id: SortKey; label: string }[] = [
   { id: "recent", label: "Newest volumes" },

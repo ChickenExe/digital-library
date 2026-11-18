@@ -100,6 +100,9 @@ pub fn mime_for(file_name: &str) -> &'static str {
     match file_name.rsplit('.').next().map(str::to_ascii_lowercase).as_deref() {
         Some("epub") => "application/epub+zip",
         Some("pdf") => "application/pdf",
+        Some("mobi") => "application/x-mobipocket-ebook",
+        Some("fb2") => "application/x-fictionbook+xml",
+        Some("cbz") => "application/vnd.comicbook+zip",
         Some("png") => "image/png",
         Some("gif") => "image/gif",
         Some("webp") => "image/webp",

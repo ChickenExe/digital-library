@@ -51,6 +51,7 @@ the pixels. They talk through a small, typed command API.
 | **A separate, calm reader** | The library is loud; the reader is deliberately quiet. Its four themes avoid pure black on white, and Night uses soft text against glare. Typefaces are Literata and Atkinson Hyperlegible, with a 60–75 character measure, ragged right and hyphenation. Controls auto-hide. Settings live in `features/reader/settings.ts` and are injected into the EPUB iframe as a stylesheet, or applied as a filter to PDF pages. |
 | **Motion system (`lib/motion.ts`)** | One vocabulary for every tween, derived from the Index shape language. The house curve is expo-out (fast start, long settle). Moves are axis-true slides, never wobbles, and there's no bouncy overshoot. Type rises out of masks, hairlines draw, the black pills travel between options, and tilted cards are "dealt". Motion (the framer-motion successor) handles enter/exit, layout and shared pills. Simple on-mount effects are CSS keyframes (`.rise-in`, `.draw-rule`). The cover → listing flight is a hand-rolled FLIP with a portalled ghost: one element instead of hundreds of layout-tracked cards. The reader opens as a `clip-path` window out of the clicked cover and only loads the book once open, so parsing never drops animation frames. Everything respects the OS "reduce motion" setting. |
 | **Permanent volume numbers** | Each import takes the next number from a counter (migration 0003), so "No. 042" never changes, even after deletions. |
+| **Many formats, two engines** | EPUB uses epub.js (mature, cached location maps). MOBI/AZW3, FB2/FBZ and CBZ use foliate-js (MIT), loaded lazily, with the same props and the same injected reader stylesheet. Rust parses each format's metadata and cover on import (`import/{mobi,fb2,cbz}.rs`). Plain text is converted to an EPUB 3 on import (`import/txt.rs`: encoding detection, chapter headings, Gutenberg header/boilerplate), so it gets the full reader; the hash is of the original file, so re-importing it still de-duplicates. Encrypted files are rejected with a clear message. Migration 0005 rebuilds `books` to widen the format CHECK, with foreign keys off during migrations so the rebuild can't cascade-delete progress. |
 | **Sets** | Curated groups (an author's novels, a canon) defined in `catalog/sets.rs` by Gutenberg id. Ownership comes from the library's `source_*` columns, so getting a book from Discover fills its slot. |
 
 ## Data model
@@ -188,5 +189,5 @@ What does it:
 2. Book detail panel and metadata editing (title, authors, cover replacement).
 3. Collections / custom shelves.
 4. Reader settings: font, size, theme, margins, scroll vs. paged. Also a table of contents, plus highlights and notes.
-5. Windows file associations for `.epub` and `.pdf` (launch-arg import is already in place).
+5. Windows file associations for the supported formats (launch-arg import is already in place).
 6. Auto-update via the Tauri updater plugin and code-signed installers.

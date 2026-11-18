@@ -1,7 +1,11 @@
 //! Import pipeline: hash → de-dupe → extract metadata → copy into library → insert.
 
+pub mod cbz;
 pub mod epub;
+pub mod fb2;
+pub mod mobi;
 pub mod pdf;
+pub mod txt;
 
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -60,7 +64,50 @@ pub fn collect_files(paths: &[PathBuf]) -> Vec<PathBuf> {
 }
 
 pub fn format_of(path: &Path) -> Option<BookFormat> {
+    let name = path.file_name()?.to_str()?.to_ascii_lowercase();
+    if name.ends_with(".fb2.zip") {
+        return Some(BookFormat::Fb2);
+    }
     path.extension().and_then(|e| e.to_str()).and_then(BookFormat::from_extension)
+}
+
+fn is_txt(path: &Path) -> bool {
+    path.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("txt"))
+}
+
+/// What gets stored: the file as-is, or (for plain text) a generated EPUB.
+enum Payload {
+    Copy,
+    Bytes(Vec<u8>),
+}
+
+fn prepare(source: &Path, format: BookFormat, id: &str) -> AppResult<(Extracted, Payload)> {
+    if is_txt(source) {
+        let len = std::fs::metadata(source)?.len() as usize;
+        if len > txt::MAX_TXT_BYTES {
+            return Err(AppError::Invalid("this text file is too large to be a book".into()));
+        }
+        let text = txt::decode(&std::fs::read(source)?);
+        let (title, author) = txt::header_meta(&text);
+        let title = title.unwrap_or_else(|| title_from_file_name(source));
+        let epub = txt::to_epub(&text, &title, id)?;
+        let mut extracted = epub::extract_from(std::io::Cursor::new(&epub))?;
+        extracted.title = Some(title);
+        extracted.authors = author.into_iter().collect();
+        return Ok((extracted, Payload::Bytes(epub)));
+    }
+    let extracted = match format {
+        BookFormat::Epub => epub::extract(source)?,
+        // A PDF we can't parse metadata from is still readable; fall back to the filename.
+        BookFormat::Pdf => pdf::extract(source).unwrap_or_else(|e| {
+            log::warn!("pdf metadata failed for {}: {e}", source.display());
+            Extracted::default()
+        }),
+        BookFormat::Mobi => mobi::extract(source)?,
+        BookFormat::Fb2 => fb2::extract(source)?,
+        BookFormat::Cbz => cbz::extract(source)?,
+    };
+    Ok((extracted, Payload::Copy))
 }
 
 pub fn hash_file(path: &Path) -> AppResult<String> {
@@ -98,21 +145,20 @@ pub fn import_file(
         return Ok(Outcome::Duplicate(existing));
     }
 
-    let extracted = match format {
-        BookFormat::Epub => epub::extract(source)?,
-        // A PDF we can't parse metadata from is still readable; fall back to the filename.
-        BookFormat::Pdf => pdf::extract(source).unwrap_or_else(|e| {
-            log::warn!("pdf metadata failed for {}: {e}", source.display());
-            Extracted::default()
-        }),
-    };
-
     let id = uuid::Uuid::now_v7().to_string();
+    let (extracted, payload) = prepare(source, format, &id)?;
+
     let file_name = format!("{id}.{}", format.as_str());
     let original_name =
         source.file_name().and_then(|n| n.to_str()).unwrap_or("untitled").to_string();
     let target = paths.book_file(&file_name)?;
-    std::fs::copy(source, &target)?;
+    let file_size = match payload {
+        Payload::Copy => std::fs::copy(source, &target)?,
+        Payload::Bytes(bytes) => {
+            std::fs::write(&target, &bytes)?;
+            bytes.len() as u64
+        }
+    } as i64;
 
     let mut written = vec![target];
     let result = (|| {
@@ -150,7 +196,7 @@ pub fn import_file(
             format,
             file_name: file_name.clone(),
             original_name,
-            file_size: std::fs::metadata(source)?.len() as i64,
+            file_size,
             file_hash: hash,
             page_count: extracted.page_count,
             cover_file,
@@ -251,9 +297,52 @@ mod tests {
         let again = import_all(&conn, &paths, &[src], |_, _, _| {});
         assert_eq!((again.imported.len(), again.duplicates.len()), (0, 1));
 
-        let bogus = dir.path().join("notes.txt");
+        let bogus = dir.path().join("notes.docx");
         std::fs::write(&bogus, "hi").unwrap();
         let failed = import_all(&conn, &paths, &[bogus], |_, _, _| {});
         assert_eq!(failed.failed.len(), 1);
+    }
+
+    #[test]
+    fn imports_every_format() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let paths = LibraryPaths::new(&dir.path().join("data")).unwrap();
+        let conn = Mutex::new(crate::db::open_in_memory(crate::db::LIBRARY_MIGRATIONS).unwrap());
+
+        let mobi = dir.path().join("earthsea.azw3");
+        std::fs::write(&mobi, mobi::tests::build_mobi(false)).unwrap();
+        let fb2 = dir.path().join("picnic.fb2");
+        std::fs::write(&fb2, fb2::tests::build_fb2()).unwrap();
+        let fbz = dir.path().join("picnic2.fb2.zip");
+        {
+            let mut zip = zip::ZipWriter::new(File::create(&fbz).unwrap());
+            zip.start_file("book.fb2", zip::write::SimpleFileOptions::default()).unwrap();
+            zip.write_all(fb2::tests::build_fb2().replace("Roadside", "Zipped").as_bytes()).unwrap();
+            zip.finish().unwrap();
+        }
+        let text = dir.path().join("the_long_walk.txt");
+        std::fs::write(&text, "CHAPTER 1\n\nWe set out.\n\nCHAPTER 2\n\nWe arrived.").unwrap();
+
+        let report = import_all(&conn, &paths, &[mobi, fb2, fbz, text.clone()], |_, _, _| {});
+        assert!(report.failed.is_empty(), "{:?}", report.failed);
+        let mut got: Vec<(String, BookFormat)> =
+            report.imported.iter().map(|b| (b.title.clone(), b.format)).collect();
+        got.sort_by(|a, b| a.0.cmp(&b.0));
+        assert_eq!(
+            got,
+            [
+                ("A Wizard of Earthsea".into(), BookFormat::Mobi),
+                ("Roadside Picnic".into(), BookFormat::Fb2),
+                ("The Long Walk".into(), BookFormat::Epub),
+                ("Zipped Picnic".into(), BookFormat::Fb2),
+            ]
+        );
+        // The text file is stored as an EPUB, and re-importing it is still caught as a duplicate.
+        let walk = report.imported.iter().find(|b| b.title == "The Long Walk").unwrap();
+        let stored = paths.book_file(&format!("{}.epub", walk.id)).unwrap();
+        assert!(epub::extract(&stored).is_ok());
+        let again = import_all(&conn, &paths, &[text], |_, _, _| {});
+        assert_eq!(again.duplicates.len(), 1);
     }
 }

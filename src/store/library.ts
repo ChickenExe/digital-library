@@ -104,7 +104,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     const picked = await open({
       multiple: true,
       title: "Add books",
-      filters: [{ name: "Books", extensions: ["epub", "pdf"] }],
+      filters: [{ name: "Books", extensions: ["epub", "pdf", "mobi", "azw", "azw3", "prc", "fb2", "fbz", "zip", "cbz", "txt"] }],
     });
     if (picked) await get().importPaths(Array.isArray(picked) ? picked : [picked]);
   },

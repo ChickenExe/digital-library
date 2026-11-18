@@ -10,13 +10,23 @@ use ts_rs::TS;
 pub enum BookFormat {
     Epub,
     Pdf,
+    /// Kindle: MOBI, AZW, AZW3 (KF8), PRC — DRM-free only.
+    Mobi,
+    /// FictionBook 2, plain (`.fb2`) or zipped (`.fbz`, `.fb2.zip`).
+    Fb2,
+    /// Comic book archive (zip of images).
+    Cbz,
 }
 
 impl BookFormat {
+    /// The stored format for an imported file extension (`txt` becomes an EPUB).
     pub fn from_extension(ext: &str) -> Option<Self> {
         match ext.to_ascii_lowercase().as_str() {
-            "epub" => Some(Self::Epub),
+            "epub" | "txt" => Some(Self::Epub),
             "pdf" => Some(Self::Pdf),
+            "mobi" | "azw" | "azw3" | "prc" => Some(Self::Mobi),
+            "fb2" | "fbz" => Some(Self::Fb2),
+            "cbz" => Some(Self::Cbz),
             _ => None,
         }
     }
@@ -24,10 +34,20 @@ impl BookFormat {
         match self {
             Self::Epub => "epub",
             Self::Pdf => "pdf",
+            Self::Mobi => "mobi",
+            Self::Fb2 => "fb2",
+            Self::Cbz => "cbz",
         }
     }
     pub fn parse(s: &str) -> Option<Self> {
-        Self::from_extension(s)
+        match s {
+            "epub" => Some(Self::Epub),
+            "pdf" => Some(Self::Pdf),
+            "mobi" => Some(Self::Mobi),
+            "fb2" => Some(Self::Fb2),
+            "cbz" => Some(Self::Cbz),
+            _ => None,
+        }
     }
 }
 
